@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: transport_quote_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: transport_quote
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: transport_quote_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    restart: always
+
+  backend:
+    build: ./backend
+    container_name: transport_quote_backend
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://user:password@postgres:5432/transport_quote
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      UPLOAD_DIR: /app/uploads
+      PARTNER_CONFIGS_DIR: /app/configs/partners
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/configs:/app/configs
+      - ./file_import:/app/file_import
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - app-network
+    restart: always
+
+  frontend:
+    build: ./frontend
+    container_name: transport_quote_frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: always
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -1,0 +1,3 @@
+mode,origine,pays_origine,destination,pays_dest,poids_min,poids_max,prix,delai
+ROAD,Paris,FR,Lyon,FR,0,100,50.0,24h
+ROAD,Marseille,FR,Nice,FR,0,100,30.0,12h
