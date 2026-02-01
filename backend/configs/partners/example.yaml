@@ -1,0 +1,34 @@
+# Configuration exemple pour un partenaire
+# Copier et adapter ce fichier pour chaque partenaire
+
+partner_code: "EXAMPLE"
+partner_name: "Partenaire Exemple"
+
+# Configuration de parsing
+file_type: "EXCEL"  # CSV, EXCEL, PDF
+
+# Pour les fichiers Excel
+sheet_name: 0  # Numéro ou nom de l'onglet
+skip_rows: 2   # Lignes à ignorer en début de fichier
+
+# Pour les fichiers CSV
+delimiter: ","
+encoding: "utf-8"
+
+# Mapping des colonnes
+# Clé = nom dans le fichier source
+# Valeur = nom standardisé pour l'application
+columns:
+  "Zone": "origin_city"
+  "Destination": "dest_city"
+  "Poids min (kg)": "weight_min"
+  "Poids max (kg)": "weight_max"
+  "Prix HT": "cost"
+  "Délai": "delivery_time"
+
+# Valeurs par défaut
+defaults:
+  origin_country: "FR"
+  dest_country: "FR"
+  transport_mode: "ROAD"
+  currency: "EUR"

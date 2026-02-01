@@ -1,0 +1,116 @@
+# Mapping par défaut des colonnes
+# Le système normalise les headers (minuscules, sans accents, sans espaces)
+# et cherche des correspondances ici.
+
+default:
+  columns:
+    transport_mode: ["mode", "transport", "type", "mode_transport"]
+    origin_city: ["ville_depart", "origin_city", "city_from", "depart", "ville_enlèvement", "origine"]
+    origin_country: ["pays_depart", "origin_country", "country_from", "pays_enlèvement", "iso_depart", "pays", "pays_origine"]
+    origin_postal_code: ["cp_depart", "zip_from", "postal_code_from", "code_postal_depart"]
+    dest_city: ["ville_arrivee", "dest_city", "city_to", "arrivee", "ville_livraison", "destination"]
+    dest_country: ["pays_arrivee", "dest_country", "country_to", "pays_livraison", "iso_arrivee", "pays_dest"]
+    dest_postal_code: ["cp_arrivee", "zip_to", "postal_code_to", "code_postal_arrivee"]
+    weight_min: ["poids_min", "weight_min", "min_kg", "kg_min"]
+    weight_max: ["poids_max", "weight_max", "max_kg", "kg_max"]
+    volume_min: ["volume_min", "min_m3"]
+    volume_max: ["volume_max", "max_m3"]
+    cost: ["prix", "price", "montant", "cost", "tarif", "net"]
+    currency: ["devise", "currency"]
+    delivery_time: ["delai", "delivery_time", "transit_time", "temps"]
+    valid_until: ["validite", "valid_until", "date_fin", "expiration"]
+
+# Configurations spécifiques par Partenaire (Code Partenaire)
+partners:
+  DHL:
+    columns:
+      cost: "Tarif 2024"
+
+  # Configuration pour Transport BESSON (Matrix/Grid)
+  # Fichier: grille tarifaire2024 BESSON.xlsx
+  BESSON: # Utiliser le CODE du partenaire ici (ex: "BESSON" ou "TEST_IMPORT" si on teste avec celui-là)
+    layout: "grid"
+    header_row: 0 # Ligne 1 dans Excel (0-indexed)
+    sheet_name: "Tarifs" # Optionnel, pour cibler une feuille précise
+    columns:
+      origin_city: "Agence"
+      origin_postal_code: "Agence"
+      dest_postal_code: "Département" # ex: "01"
+      zone: "Zone" # ex: "1"
+      dest_city: "unnamed:_3" # Colonne sans header mapee vers ville destination
+    
+    defaults:
+      transport_mode: "ROAD"
+      origin_country: "FR"
+      dest_country: "FR"
+      currency: "EUR"
+    
+    grid:
+      pivot_axis: "weight"
+      value_column: "cost"
+      header_regex: "^(\\d+)[_\\s]*(KG|kg)" # Match "5 KG", "5_KG", "5kg", "5_kg"
+      unit: "KG"
+      weight_min_gap: 1  # Tranches disjointes: 0-5, 6-10, 11-20, etc.
+
+    transforms:
+      origin_city:
+        NIC: "NICE"
+        MAR: "MARSEILLE"
+      origin_postal_code:
+        NIC: "06"
+        MAR: "13"
+
+  # Configuration pour BIANCHI (Dual Matrix)
+  # Fichier: ML BIANCHI GROUP PROTOCOLE...
+  BIANCHI:
+    layout: "dual_grid"
+    header_row: 6
+    sheet_name: "PROTOCOLE DISTRIBUTION FRANCE"
+    
+    columns:
+      dest_postal_code: "zip_code"     # Section 1 & 2 (fusionné si possible, mais colonne 1 prioritaire)
+      # Les colonnes spécifiques pour le mapping sont définies dans dual_grid ci-dessous ou via alias direct
+      pricing_type_small: "pricing"
+      delivery_time_small: "t/t_from_nice_**"
+      pricing_type_large: "pricing.1"     # Pandas suffix .1 pour le doublon (Section 2)
+      delivery_time_large: "t/t_from_nice_**.1"
+
+    defaults:
+      transport_mode: "ROAD"
+      origin_country: "FR"
+      origin_city: "NICE"
+      origin_postal_code: "06000"
+      dest_country: "FR"
+      dest_city: "ALL"  # Tarif par département, pas par ville spécifique
+      currency: "EUR"
+
+    # Transformation de valeurs spécifiques
+    transforms:
+      dest_postal_code:
+        "20 (1)": "2A"
+        "20 (2)": "2B"
+        "98": "98000"
+      pricing_type:
+        "PRICE PER 100KGS": "PER_100KG"
+        "PRICE PER 100KGS ": "PER_100KG"  # Avec espace trailing
+        "LUMPSUM FROM NICE": "LUMPSUM"
+
+    dual_grid:
+      small_weights:
+        columns:
+          "Minimum": { weight_min: 0, weight_max: 99 }
+          "100/300 kg": { weight_min: 100, weight_max: 300 }
+          "301/500kg": { weight_min: 301, weight_max: 500 }
+          "501/1000 kg": { weight_min: 501, weight_max: 1000 }
+        pricing_col: "pricing_type_small"
+        delivery_time_col: "delivery_time_small"
+      
+      large_weights:
+        columns:
+          "1001/1500 kg": { weight_min: 1001, weight_max: 1500 }
+          "1501/2000 kg": { weight_min: 1501, weight_max: 2000 }
+          "2001/3000 kg": { weight_min: 2001, weight_max: 3000 }
+          "3001/4000 kg": { weight_min: 3001, weight_max: 4000 }
+          "4001/5000 kg": { weight_min: 4001, weight_max: 5000 }
+        pricing_col: "pricing_type_large"
+        delivery_time_col: "delivery_time_large"
