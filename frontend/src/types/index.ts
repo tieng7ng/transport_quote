@@ -24,7 +24,7 @@ export interface ImportJob {
 export interface PartnerCreate {
     code: string;
     name: string;
-    email: string;
+    email: string | null;
 }
 
 export interface Quote {

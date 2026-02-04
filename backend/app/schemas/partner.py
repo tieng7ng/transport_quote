@@ -6,7 +6,7 @@ from pydantic import BaseModel, EmailStr
 class PartnerBase(BaseModel):
     code: str
     name: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
 
 
 class PartnerCreate(PartnerBase):

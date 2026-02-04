@@ -5,7 +5,7 @@
 
 set -e
 
-PROJECT_DIR="/Users/tiengd/Documents/tuto/transport_quote"
+PROJECT_DIR="/home/ubuntu/opt/transport_quote"
 cd "$PROJECT_DIR"
 
 # Couleurs
@@ -33,14 +33,14 @@ restart_frontend() {
     cd "$PROJECT_DIR"
 
     log_info "Arrêt du container frontend..."
-    docker-compose stop frontend 2>/dev/null || true
-    docker-compose rm -f frontend 2>/dev/null || true
+    docker compose stop frontend 2>/dev/null || true
+    docker compose rm -f frontend 2>/dev/null || true
 
     log_info "Reconstruction de l'image frontend..."
-    docker-compose build frontend
+    docker compose build frontend
 
     log_info "Démarrage du container frontend..."
-    docker-compose up -d frontend
+    docker compose up -d frontend
 
     log_info "Frontend redémarré avec succès!"
     echo -e "${GREEN}URL: http://localhost:8080${NC}"
@@ -53,14 +53,17 @@ restart_backend() {
     cd "$PROJECT_DIR"
 
     log_info "Arrêt du container backend..."
-    docker-compose stop backend 2>/dev/null || true
-    docker-compose rm -f backend 2>/dev/null || true
+    docker compose stop backend 2>/dev/null || true
+    docker compose rm -f backend 2>/dev/null || true
 
     log_info "Reconstruction de l'image backend..."
-    docker-compose build backend
+    docker compose build backend
 
     log_info "Démarrage du container backend..."
-    docker-compose up -d backend
+    docker compose up -d backend
+
+    log_info "Application des migrations..."
+    docker exec transport_quote_backend alembic upgrade head
 
     log_info "Backend redémarré avec succès!"
     echo -e "${GREEN}URL: http://localhost:3000${NC}"
@@ -73,13 +76,19 @@ restart_all() {
     cd "$PROJECT_DIR"
 
     log_info "Arrêt de tous les containers..."
-    docker-compose down
+    docker compose down
 
     log_info "Reconstruction des images (build incremental)..."
-    docker-compose build
+    docker compose build
 
     log_info "Démarrage de tous les services..."
-    docker-compose up -d
+    docker compose up -d
+
+    log_info "Attente du démarrage du backend..."
+    sleep 3
+
+    log_info "Application des migrations..."
+    docker exec transport_quote_backend alembic upgrade head
 
     log_info "Tous les services redémarrés avec succès!"
     echo ""
@@ -92,7 +101,7 @@ restart_all() {
 # Fonction pour afficher le statut
 show_status() {
     log_info "=== Statut des services ==="
-    docker-compose ps
+    docker compose ps
 }
 
 # Menu principal

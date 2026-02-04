@@ -96,10 +96,15 @@ export const Partners: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            // Clean payload: convert empty email to null
+            const payload = {
+                ...formData,
+                email: formData.email.trim() || null
+            };
             if (editingPartner) {
-                await PartnerService.update(editingPartner.id, formData);
+                await PartnerService.update(editingPartner.id, payload);
             } else {
-                await PartnerService.create(formData);
+                await PartnerService.create(payload);
             }
             setShowModal(false);
             fetchPartners();

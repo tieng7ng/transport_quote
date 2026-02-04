@@ -19,10 +19,14 @@ COPY . .
 # Répertoires
 RUN mkdir -p uploads configs/partners
 
+# Entrypoint script
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
 # Variables d'environnement
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 3000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3000"]
+CMD ["./entrypoint.sh"]
