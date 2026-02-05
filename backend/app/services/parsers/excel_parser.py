@@ -8,7 +8,9 @@ class ExcelParser(BaseParser):
         sheet_name = kwargs.get("sheet_name")
         if sheet_name is None:
             sheet_name = 0
-        header_row = kwargs.get("header_row", 0) # Défaut: 1ère ligne
+        header_row = kwargs.get("header_row")
+        if header_row is None:
+            header_row = 0
         
         try:
             df = pd.read_excel(file_path, sheet_name=sheet_name, header=header_row)
