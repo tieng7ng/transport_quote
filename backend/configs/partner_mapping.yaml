@@ -114,3 +114,240 @@ partners:
           "4001/5000 kg": { weight_min: 4001, weight_max: 5000 }
         pricing_col: "pricing_type_large"
         delivery_time_col: "delivery_time_large"
+
+  # ══════════════════════════════════════════════════════════════════════════════
+  # Configuration MONACO LOGISTIQUE (Multi-Sheet)
+  # Fichier: PROTOCOLLO NT-MonacoLogistique Ott 2020 - agg.to 01.01.2023.xlsx
+  # Un seul partenaire, plusieurs feuilles traitées en un seul import
+  # ══════════════════════════════════════════════════════════════════════════════
+  MONACO_LOG:
+    layout: "multi_sheet"
+
+    sheets:
+      # ────────────────────────────────────────────────────────────────────────
+      # Feuille 1 : Tarifs France (Nice → Départements FR)
+      # ────────────────────────────────────────────────────────────────────────
+      - name: "france"
+        sheet_name: "1-Tarifs MonacoLog"
+        header_row: 15
+        layout: "dual_grid"
+
+        columns:
+          # Noms normalisés (minuscules, underscores)
+          dest_postal_code: "zip_code"
+          pricing_type_small: "pricing"
+          delivery_time_small: "t/t_from_nice_**"
+          pricing_type_large: "pricing.1"
+          delivery_time_large: "t/t_from_nice_**.1"
+
+        defaults:
+          transport_mode: "ROAD"
+          origin_country: "FR"
+          origin_city: "NICE"
+          origin_postal_code: "06000"
+          dest_country: "FR"
+          dest_city: "ALL"
+          currency: "EUR"
+
+        transforms:
+          dest_postal_code:
+            "20 (1)": "2A"
+            "20 (2)": "2B"
+            "98": "98000"
+          pricing_type:
+            "PRICE PER 100KGS": "PER_100KG"
+            "PRICE PER 100KGS ": "PER_100KG"
+            "LUMPSUM FROM NICE": "LUMPSUM"
+
+        dual_grid:
+          small_weights:
+            columns:
+              # Noms normalisés correspondant aux headers Excel
+              "minimum": { weight_min: 0, weight_max: 99 }
+              "100/300_kg": { weight_min: 100, weight_max: 300 }
+              "301/500kg": { weight_min: 301, weight_max: 500 }
+              "501/1000_kg": { weight_min: 501, weight_max: 1000 }
+            pricing_col: "pricing_type_small"
+            delivery_time_col: "delivery_time_small"
+          large_weights:
+            columns:
+              "1001/1500_kg": { weight_min: 1001, weight_max: 1500 }
+              "1501/2000_kg": { weight_min: 1501, weight_max: 2000 }
+              "2001/3000_kg": { weight_min: 2001, weight_max: 3000 }
+              "3001/4000_kg": { weight_min: 3001, weight_max: 4000 }
+              "4001/5000_kg": { weight_min: 4001, weight_max: 5000 }
+            pricing_col: "pricing_type_large"
+            delivery_time_col: "delivery_time_large"
+
+      # ────────────────────────────────────────────────────────────────────────
+      # Feuille 2 : Tarifs Italie (Melzo → Provinces IT)
+      # ────────────────────────────────────────────────────────────────────────
+      - name: "italy"
+        sheet_name: "2.TARIFS NT"
+        header_row: 21
+        layout: "single_grid"
+
+        columns:
+          # La colonne province est "unnamed:_1" après normalisation
+          dest_postal_code: "unnamed:_1"
+
+        defaults:
+          transport_mode: "ROAD"
+          origin_country: "IT"
+          origin_city: "MELZO"
+          origin_postal_code: "20066"
+          dest_country: "IT"
+          currency: "EUR"
+
+        transforms:
+          dest_postal_code:
+            regex_extract: "^(\\d+)"
+
+        single_grid:
+          # La colonne province est "unnamed:_1" (colonne B)
+          province_column: "unnamed:_1"
+          brackets:
+            # Noms normalisés correspondant aux headers Excel
+            - header: "minimum"
+              weight_min: 0
+              weight_max: 99
+              pricing_type: "LUMPSUM"
+            - header: "till_500_kgs"
+              weight_min: 100
+              weight_max: 500
+              pricing_type: "PER_100KG"
+            - header: "501_–_1000"
+              weight_min: 501
+              weight_max: 1000
+              pricing_type: "PER_100KG"
+            - header: "1001_–_2000"
+              weight_min: 1001
+              weight_max: 2000
+              pricing_type: "PER_100KG"
+            - header: "2001_–_2500"
+              weight_min: 2001
+              weight_max: 2500
+              pricing_type: "PER_100KG"
+            - header: "2501_–_3000"
+              weight_min: 2501
+              weight_max: 3000
+              pricing_type: "PER_100KG"
+
+  # ══════════════════════════════════════════════════════════════════════════════
+  # Configurations legacy (conservées pour rétrocompatibilité)
+  # ══════════════════════════════════════════════════════════════════════════════
+
+  # Configuration pour MONACO LOGISTIQUE - FRANCE (Nice -> Départements FR)
+  # Fichier: PROTOCOLLO NT-MonacoLogistique... Feuille 1
+  MONACO_LOG_FR:
+    layout: "dual_grid"
+    header_row: 14
+    sheet_name: "1-Tarifs MonacoLog"
+
+    columns:
+      dest_postal_code: "zip code"
+      pricing_type_small: "PRICING"
+      delivery_time_small: "T/T from Nice **"
+      pricing_type_large: "PRICING.1"
+      delivery_time_large: "T/T from Nice **.1"
+
+    defaults:
+      transport_mode: "ROAD"
+      origin_country: "FR"
+      origin_city: "NICE"
+      origin_postal_code: "06000"
+      dest_country: "FR"
+      dest_city: "ALL"
+      currency: "EUR"
+
+    transforms:
+      dest_postal_code:
+        "20 (1)": "2A"
+        "20 (2)": "2B"
+        "98": "98000"
+      pricing_type:
+        "PRICE PER 100KGS": "PER_100KG"
+        "LUMPSUM FROM NICE": "LUMPSUM"
+
+    dual_grid:
+      small_weights:
+        columns:
+          "Minimum": { weight_min: 0, weight_max: 99 }
+          "100/300 kg": { weight_min: 100, weight_max: 300 }
+          "301/500kg": { weight_min: 301, weight_max: 500 }
+          "501/1000 kg": { weight_min: 501, weight_max: 1000 }
+        pricing_col: "pricing_type_small"
+        delivery_time_col: "delivery_time_small"
+
+      large_weights:
+        columns:
+          "1001/1500 kg": { weight_min: 1001, weight_max: 1500 }
+          "1501/2000 kg": { weight_min: 1501, weight_max: 2000 }
+          "2001/3000 kg": { weight_min: 2001, weight_max: 3000 }
+          "3001/4000 kg": { weight_min: 3001, weight_max: 4000 }
+          "4001/5000 kg": { weight_min: 4001, weight_max: 5000 }
+        pricing_col: "pricing_type_large"
+        delivery_time_col: "delivery_time_large"
+
+  # Configuration pour MONACO LOGISTIQUE - ITALIE (Melzo -> Provinces IT)
+  # Fichier: PROTOCOLLO NT-MonacoLogistique... Feuille 2
+  MONACO_LOG_IT:
+    layout: "single_grid" # Nouvelle layout spécifique ou adaptation de 'grid'
+    header_row: 20
+    sheet_name: "2.TARIFS NT"
+
+    columns:
+      dest_province: 1  # Index colonne B (0-based = 1) - Sera géré par parser/mapper si supporté ou via nom
+      # Mapping via noms de colonnes (si headers présents ligne 21)
+      # Les headers sont : "PROVINCES", "Minimum", "Till 500 kgs", "501 – 1000", "1001 – 2000", "2001 – 2500", "2501 – 3000"
+      dest_postal_code: "PROVINCES" 
+
+    defaults:
+      transport_mode: "ROAD"
+      origin_country: "IT"
+      origin_city: "MELZO"
+      origin_postal_code: "20066"
+      dest_country: "IT"
+      currency: "EUR"
+    
+    # Configuration spéciale pour extraire le code province de "20 Milano"
+    transforms:
+      dest_postal_code:
+        regex_extract: "^(\\d+)" # Pour extraire "20" de "20 Milano"
+
+    grid:
+      pivot_axis: "weight"
+      value_column: "cost"
+      # Regex pour matcher les colonnes de poids qui ne sont pas standard "XX KG"
+      # Headers: "Minimum", "Till 500 kgs", "501 – 1000", ...
+      # On va devoir adapter le ColumnMapper pour supporter une liste explicite de colonnes pivot
+      # OU utiliser une regex flexible.
+      # Utilisons une approche explicite via 'weight_brackets' qui sera implémentée dans single_grid
+    
+    single_grid:
+      province_column: "PROVINCES"
+      brackets:
+        - header: "Minimum"
+          weight_min: 0
+          weight_max: 99
+          pricing_type: "LUMPSUM"
+        - header: "Till 500 kgs"
+          weight_min: 100
+          weight_max: 500
+          pricing_type: "PER_100KG"
+        - header: "501 – 1000"
+          weight_min: 501
+          weight_max: 1000
+          pricing_type: "PER_100KG"
+        - header: "1001 – 2000"
+          weight_min: 1001
+          weight_max: 2000
+          pricing_type: "PER_100KG"
+        - header: "2001 – 2500"
+          weight_min: 2001
+          weight_max: 2500
+          pricing_type: "PER_100KG"
+        - header: "2501 – 3000"
+          weight_min: 2501
+          weight_max: 3000
+          pricing_type: "PER_100KG"

@@ -52,3 +52,24 @@ class PartnerService:
         db.delete(db_partner)
         db.commit()
         return True
+    @staticmethod
+    def ensure_defaults(db: Session):
+        """Assure que les partenaires par défaut existent."""
+        partners = [
+            {
+                "code": "MONACO_LOG",
+                "name": "Monaco Logistique",
+                "email": "transports@monacologistique.mc"
+            },
+            {
+                "code": "BESSON",
+                "name": "Transport Besson",
+                "email": "contact@besson.fr"
+            }
+        ]
+        
+        for p in partners:
+            existing = PartnerService.get_by_code(db, p["code"])
+            if not existing:
+                PartnerService.create_partner(db, PartnerCreate(**p))
+                print(f"Partner {p['code']} created.")

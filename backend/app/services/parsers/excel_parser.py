@@ -5,7 +5,9 @@ from app.services.parsers.base_parser import BaseParser
 class ExcelParser(BaseParser):
     def parse(self, file_path: str, **kwargs) -> List[Dict[str, Any]]:
         # Lire le fichier Excel avec pandas
-        sheet_name = kwargs.get("sheet_name", 0) # Défaut: 1ère feuille
+        sheet_name = kwargs.get("sheet_name")
+        if sheet_name is None:
+            sheet_name = 0
         header_row = kwargs.get("header_row", 0) # Défaut: 1ère ligne
         
         try:

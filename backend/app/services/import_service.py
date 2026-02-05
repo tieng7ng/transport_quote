@@ -104,79 +104,153 @@ class ImportService:
 
             # Instanciation des services logiques
             mapper = ColumnMapper()
-            parser_config = mapper.get_parser_config(partner_code)
-            
             normalizer = DataNormalizer()
             validator = RowValidator()
-            
+
             success_count = 0
             error_count = 0
             errors_list = []
-            
+            total_rows = 0
+
             print(f"[{datetime.utcnow()}] START Processing Job {job_id}")
             print(f"[{datetime.utcnow()}] Deleting old quotes...")
 
             # Suppression des anciens tarifs du partenaire avant import
             QuoteService.delete_all_by_partner(db, job.partner_id)
-            
+
             print(f"[{datetime.utcnow()}] Old quotes deleted. Parsing file...")
 
-            # --- PIPELINE DE TRAITEMENT ---
-            # Parsing avec config spécifique (sheet, header...)
-            raw_data = parser.parse(file_path, **parser_config)
-            
-            print(f"[{datetime.utcnow()}] Parsed {len(raw_data) if raw_data else 0} rows.")
+            # --- VÉRIFICATION LAYOUT MULTI_SHEET ---
+            if mapper.is_multi_sheet(partner_code):
+                # Layout multi_sheet : traiter plusieurs feuilles
+                sheets_config = mapper.get_sheets_config(partner_code)
+                print(f"[{datetime.utcnow()}] Multi-sheet layout detected. Processing {len(sheets_config)} sheets...")
 
-            
-            for i, row in enumerate(raw_data):
-                row_num = i + 1
-                try:
-                    # 1. Mapping (peut retourner plusieurs lignes si matrice)
-                    mapped_rows_list = mapper.map_row(row, partner_code)
-                    
-                    for mapped_row in mapped_rows_list:
+                for sheet_conf in sheets_config:
+                    sheet_name = sheet_conf.get("sheet_name")
+                    header_row = sheet_conf.get("header_row")
+                    conf_name = sheet_conf.get("name", sheet_name)
+
+                    print(f"[{datetime.utcnow()}] Processing sheet '{sheet_name}' (config: {conf_name})...")
+
+                    # Parser cette feuille spécifique
+                    sheet_parser_config = {
+                        "sheet_name": sheet_name,
+                        "header_row": header_row
+                    }
+                    raw_data = parser.parse(file_path, **sheet_parser_config)
+
+                    print(f"[{datetime.utcnow()}] Sheet '{sheet_name}': {len(raw_data) if raw_data else 0} rows parsed.")
+
+                    if not raw_data:
+                        continue
+
+                    total_rows += len(raw_data)
+
+                    for i, row in enumerate(raw_data):
+                        row_num = i + 1
                         try:
-                            # 2. Normalisation
-                            normalized_row = normalizer.normalize_row(mapped_row)
-                            
-                            # 3. Validation
-                            validation = validator.validate(normalized_row)
-                            
-                            if validation.is_valid:
-                                # 4. Sauvegarde (Via QuoteService pour réutiliser la logique)
-                                quote_in = PartnerQuoteCreate(
-                                    partner_id=job.partner_id,
-                                    **validation.data
-                                )
-                                QuoteService.create_quote(db, quote_in)
-                                success_count += 1
-                            else:
-                                # Gestion Erreur Validation
-                                error_count += 1
-                                errors_list.append({
-                                    "row": row_num,
-                                    "errors": [e.model_dump() for e in validation.errors],
-                                    "raw": sanitize_for_json(row)
-                                })
-                        except Exception as e_inner:
-                             error_count += 1
-                             errors_list.append({
+                            # Mapping avec la config spécifique de la feuille
+                            mapped_rows_list = mapper.map_row_with_sheet_config(row, sheet_conf)
+
+                            for mapped_row in mapped_rows_list:
+                                try:
+                                    normalized_row = normalizer.normalize_row(mapped_row)
+                                    validation = validator.validate(normalized_row)
+
+                                    if validation.is_valid:
+                                        quote_in = PartnerQuoteCreate(
+                                            partner_id=job.partner_id,
+                                            **validation.data
+                                        )
+                                        QuoteService.create_quote(db, quote_in)
+                                        success_count += 1
+                                    else:
+                                        error_count += 1
+                                        errors_list.append({
+                                            "sheet": sheet_name,
+                                            "row": row_num,
+                                            "errors": [e.model_dump() for e in validation.errors],
+                                            "raw": sanitize_for_json(row)
+                                        })
+                                except Exception as e_inner:
+                                    error_count += 1
+                                    errors_list.append({
+                                        "sheet": sheet_name,
+                                        "row": row_num,
+                                        "error": f"Error processing sub-row: {str(e_inner)}",
+                                        "raw": sanitize_for_json(row)
+                                    })
+
+                        except Exception as e:
+                            error_count += 1
+                            errors_list.append({
+                                "sheet": sheet_name,
                                 "row": row_num,
-                                "error": f"Error processing sub-row: {str(e_inner)}",
+                                "error": str(e),
                                 "raw": sanitize_for_json(row)
                             })
 
-                except Exception as e:
-                    # Gestion Erreur Inattendue (System)
-                    error_count += 1
-                    errors_list.append({
-                        "row": row_num,
-                        "error": str(e),
-                        "raw": sanitize_for_json(row)
-                    })
+                    print(f"[{datetime.utcnow()}] Sheet '{sheet_name}' completed.")
+
+            else:
+                # --- PIPELINE STANDARD (une seule feuille) ---
+                parser_config = mapper.get_parser_config(partner_code)
+                raw_data = parser.parse(file_path, **parser_config)
+
+                print(f"[{datetime.utcnow()}] Parsed {len(raw_data) if raw_data else 0} rows.")
+
+                total_rows = len(raw_data) if raw_data else 0
+
+                for i, row in enumerate(raw_data):
+                    row_num = i + 1
+                    try:
+                        # 1. Mapping (peut retourner plusieurs lignes si matrice)
+                        mapped_rows_list = mapper.map_row(row, partner_code)
+
+                        for mapped_row in mapped_rows_list:
+                            try:
+                                # 2. Normalisation
+                                normalized_row = normalizer.normalize_row(mapped_row)
+
+                                # 3. Validation
+                                validation = validator.validate(normalized_row)
+
+                                if validation.is_valid:
+                                    # 4. Sauvegarde (Via QuoteService pour réutiliser la logique)
+                                    quote_in = PartnerQuoteCreate(
+                                        partner_id=job.partner_id,
+                                        **validation.data
+                                    )
+                                    QuoteService.create_quote(db, quote_in)
+                                    success_count += 1
+                                else:
+                                    # Gestion Erreur Validation
+                                    error_count += 1
+                                    errors_list.append({
+                                        "row": row_num,
+                                        "errors": [e.model_dump() for e in validation.errors],
+                                        "raw": sanitize_for_json(row)
+                                    })
+                            except Exception as e_inner:
+                                 error_count += 1
+                                 errors_list.append({
+                                    "row": row_num,
+                                    "error": f"Error processing sub-row: {str(e_inner)}",
+                                    "raw": sanitize_for_json(row)
+                                })
+
+                    except Exception as e:
+                        # Gestion Erreur Inattendue (System)
+                        error_count += 1
+                        errors_list.append({
+                            "row": row_num,
+                            "error": str(e),
+                            "raw": sanitize_for_json(row)
+                        })
 
             # Mise à jour du Job
-            job.total_rows = len(raw_data)
+            job.total_rows = total_rows
             job.success_count = success_count
             job.error_count = error_count
             job.errors = errors_list

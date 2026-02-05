@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Any
 import pandas as pd
 import math
 
-CONFIG_PATH = "configs/partner_mapping.yaml"
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "configs", "partner_mapping.yaml")
 
 class ColumnMapper:
     def __init__(self):
@@ -40,9 +40,220 @@ class ColumnMapper:
         return {
             "sheet_name": p_conf.get("sheet_name"),
             "header_row": p_conf.get("header_row")
-        } 
+        }
 
+    def is_multi_sheet(self, partner_code: Optional[str] = None) -> bool:
+        """Vérifie si le partenaire utilise le layout multi_sheet."""
+        if not partner_code:
+            return False
+        p_conf = self.config.get("partners", {}).get(partner_code, {})
+        return p_conf.get("layout") == "multi_sheet"
 
+    def get_sheets_config(self, partner_code: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Retourne la liste des configurations de feuilles pour un partenaire multi_sheet.
+        Chaque élément contient: name, sheet_name, header_row, layout, columns, defaults, transforms, etc.
+        """
+        if not partner_code:
+            return []
+        p_conf = self.config.get("partners", {}).get(partner_code, {})
+        if p_conf.get("layout") != "multi_sheet":
+            return []
+        return p_conf.get("sheets", [])
+
+    def map_row_with_sheet_config(self, row: Dict[str, Any], sheet_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Transforme une ligne brute en utilisant une configuration de feuille spécifique.
+        Utilisé pour le layout multi_sheet où chaque feuille a sa propre config.
+        """
+        mapped_rows = []
+        sheet_layout = sheet_config.get("layout", "flat")
+
+        # Mapping inversé : {alias: [champ_schema_1, champ_schema_2]}
+        alias_map = {}
+
+        def add_mapping(alias, field):
+            norm_alias = self._normalize(alias)
+            if norm_alias not in alias_map:
+                alias_map[norm_alias] = []
+            if field not in alias_map[norm_alias]:
+                alias_map[norm_alias].append(field)
+
+        # 1. Charger aliases défaut
+        for field, aliases in self.default_mapping.items():
+            if isinstance(aliases, list):
+                for alias in aliases:
+                    add_mapping(alias, field)
+            else:
+                add_mapping(aliases, field)
+
+        # 2. Surcharge depuis la config de la feuille
+        sheet_cols = sheet_config.get("columns", {})
+        for field, alias in sheet_cols.items():
+            add_mapping(alias, field)
+
+        # --- LOGIQUE DUAL GRID ---
+        if sheet_layout == "dual_grid":
+            dual_conf = sheet_config.get("dual_grid", {})
+
+            base_row = {}
+            for col_name, value in row.items():
+                normalized_col = self._normalize(col_name)
+                if normalized_col in alias_map:
+                    for target_field in alias_map[normalized_col]:
+                        base_row[target_field] = value
+                elif self._normalize(col_name) in self.default_mapping:
+                    if self.default_mapping[self._normalize(col_name)] not in base_row:
+                        base_row[self._normalize(col_name)] = value
+
+            defaults = sheet_config.get("defaults", {})
+            for field, value in defaults.items():
+                if field not in base_row or base_row[field] is None:
+                    base_row[field] = value
+
+            sections = ["small_weights", "large_weights"]
+            for section_name in sections:
+                section_conf = dual_conf.get(section_name)
+                if not section_conf:
+                    continue
+
+                columns_map = section_conf.get("columns", {})
+                pricing_col_alias = section_conf.get("pricing_col")
+                delivery_col_alias = section_conf.get("delivery_time_col")
+
+                section_pricing_type = base_row.get(pricing_col_alias)
+                section_delivery_time = base_row.get(delivery_col_alias)
+
+                for col_header, weight_range in columns_map.items():
+                    found_val = None
+                    norm_header = self._normalize(col_header)
+
+                    if norm_header in row:
+                        found_val = row[norm_header]
+                    else:
+                        for rk, rv in row.items():
+                            if self._normalize(rk) == norm_header:
+                                found_val = rv
+                                break
+
+                    cleaned_cost = self._clean_decimal(found_val)
+
+                    if cleaned_cost is not None and cleaned_cost > 0:
+                        new_row = base_row.copy()
+                        new_row["weight_min"] = weight_range["weight_min"]
+                        new_row["weight_max"] = weight_range["weight_max"]
+                        new_row["cost"] = cleaned_cost
+
+                        if section_pricing_type:
+                            new_row["pricing_type"] = section_pricing_type
+                        if section_delivery_time:
+                            new_row["delivery_time"] = section_delivery_time
+
+                        mapped_rows.append(new_row)
+
+        # --- LOGIQUE SINGLE GRID ---
+        elif sheet_layout == "single_grid":
+            single_conf = sheet_config.get("single_grid", {})
+            province_col = single_conf.get("province_column")
+            brackets = single_conf.get("brackets", [])
+
+            transforms_conf = sheet_config.get("transforms", {})
+            dest_pc_extract = transforms_conf.get("dest_postal_code", {}).get("regex_extract")
+
+            base_row = {}
+            for col_name, value in row.items():
+                normalized_col = self._normalize(col_name)
+
+                if province_col and (col_name == province_col or normalized_col == self._normalize(province_col)):
+                    if dest_pc_extract and isinstance(value, str):
+                        match = re.search(dest_pc_extract, value)
+                        if match:
+                            base_row["dest_postal_code"] = match.group(1)
+                            if len(match.groups()) > 1:
+                                base_row["dest_city"] = match.group(2).strip()
+                        else:
+                            base_row["dest_postal_code"] = value
+                    else:
+                        base_row["dest_postal_code"] = value
+
+                    if "dest_city" not in base_row:
+                        base_row["dest_city"] = value
+
+                elif normalized_col in alias_map:
+                    for target_field in alias_map[normalized_col]:
+                        base_row[target_field] = value
+                elif self._normalize(col_name) in self.default_mapping:
+                    base_row[self._normalize(col_name)] = value
+
+            defaults = sheet_config.get("defaults", {})
+            for field, value in defaults.items():
+                if field not in base_row or base_row[field] is None:
+                    base_row[field] = value
+
+            for bracket in brackets:
+                header = bracket.get("header")
+                found_val = None
+                norm_header = self._normalize(header)
+
+                if header in row:
+                    found_val = row[header]
+                else:
+                    for rk, rv in row.items():
+                        if self._normalize(rk) == norm_header:
+                            found_val = rv
+                            break
+
+                cleaned_cost = self._clean_decimal(found_val)
+
+                if cleaned_cost is not None:
+                    new_row = base_row.copy()
+                    new_row["weight_min"] = bracket["weight_min"]
+                    new_row["weight_max"] = bracket["weight_max"]
+                    new_row["pricing_type"] = bracket.get("pricing_type", "PER_100KG")
+                    new_row["cost"] = cleaned_cost
+                    mapped_rows.append(new_row)
+
+        # --- LOGIQUE FLAT ---
+        else:
+            mapped_row = {}
+            for col_name, value in row.items():
+                normalized_col = self._normalize(col_name)
+                if normalized_col in alias_map:
+                    for target_field in alias_map[normalized_col]:
+                        mapped_row[target_field] = value
+                elif col_name in self.default_mapping:
+                    mapped_row[col_name] = value
+
+            defaults = sheet_config.get("defaults", {})
+            for field, value in defaults.items():
+                if field not in mapped_row or mapped_row[field] is None:
+                    mapped_row[field] = value
+
+            if "cost" in mapped_row:
+                mapped_row["cost"] = self._clean_decimal(mapped_row.get("cost"))
+
+            if mapped_row.get("cost") is not None:
+                mapped_rows = [mapped_row]
+
+        # --- PHASE FINALE : TRANSFORMS & CLEANUP ---
+        final_rows = []
+        transforms = sheet_config.get("transforms", {})
+
+        for r in mapped_rows:
+            for key in ["origin_postal_code", "dest_postal_code", "origin_city", "dest_city", "origin_country", "dest_country", "pricing_type"]:
+                if key in r and r[key] is not None:
+                    val_str = str(r[key]).strip()
+
+                    if key in transforms and isinstance(transforms[key], dict) and val_str in transforms[key]:
+                        val_str = transforms[key][val_str]
+
+                    if key in ["origin_postal_code", "dest_postal_code"] and val_str.isdigit() and len(val_str) < 2:
+                        val_str = val_str.zfill(2)
+                    r[key] = val_str
+
+            final_rows.append(r)
+
+        return final_rows
 
     def map_row(self, row: Dict[str, Any], partner_code: Optional[str] = None) -> List[Dict[str, Any]]:
         """
@@ -55,6 +266,12 @@ class ColumnMapper:
         partner_config = self.config.get("partners", {}).get(partner_code, {}) if partner_code else {}
         is_grid = partner_config.get("layout") == "grid"
         is_dual_grid = partner_config.get("layout") == "dual_grid"
+        is_single = partner_config.get("layout") == "single_grid"
+
+        if not mapped_rows:
+             # Debug only first row
+             # print(f"DEBUG map_row code={partner_code} layout={partner_config.get('layout')} row_keys={list(row.keys())}")
+             pass
         
         # Mapping inversé : {alias: [champ_schema_1, champ_schema_2]}
         alias_map = {}
@@ -207,6 +424,75 @@ class ColumnMapper:
                 prev_weight = weight_max + weight_min_gap
 
 
+        # --- LOGIQUE SINGLE GRID (MONACO ITALIE) ---
+        elif partner_config.get("layout") == "single_grid":
+            single_conf = partner_config.get("single_grid", {})
+            province_col = single_conf.get("province_column")
+            brackets = single_conf.get("brackets", [])
+            
+            # Regex extraction config
+            transforms_conf = partner_config.get("transforms", {})
+            dest_pc_extract = transforms_conf.get("dest_postal_code", {}).get("regex_extract")
+
+            base_row = {}
+            # Copie des champs par défaut et mappings simples
+            for col_name, value in row.items():
+                normalized_col = self._normalize(col_name)
+                
+                # Si c'est la colonne province, on la traite
+                if province_col and (col_name == province_col or normalized_col == self._normalize(province_col)):
+                    # Extraction Regex (ex: "20 Milano" -> "20")
+                    if dest_pc_extract and isinstance(value, str):
+                        match = re.search(dest_pc_extract, value)
+                        if match:
+                             base_row["dest_postal_code"] = match.group(1)
+                             if len(match.groups()) > 1:
+                                 base_row["dest_city"] = match.group(2).strip()
+                        else:
+                             base_row["dest_postal_code"] = value
+                    else:
+                        base_row["dest_postal_code"] = value
+                    
+                    if "dest_city" not in base_row:
+                         base_row["dest_city"] = value # Fallback
+
+                elif normalized_col in alias_map:
+                    for target_field in alias_map[normalized_col]:
+                        base_row[target_field] = value
+                elif self._normalize(col_name) in self.default_mapping:
+                     base_row[self._normalize(col_name)] = value
+
+            # Defaults
+            defaults = partner_config.get("defaults", {})
+            for field, value in defaults.items():
+                if field not in base_row or base_row[field] is None:
+                    base_row[field] = value
+
+            # Itération sur les brackets configurés
+            for bracket in brackets:
+                header = bracket.get("header")
+                found_val = None
+                norm_header = self._normalize(header)
+                
+                if header in row:
+                    found_val = row[header]
+                else:
+                    for rk, rv in row.items():
+                        if self._normalize(rk) == norm_header:
+                            found_val = rv
+                            break
+                
+                cleaned_cost = self._clean_decimal(found_val)
+                
+                if cleaned_cost is not None:
+                    new_row = base_row.copy()
+                    new_row["weight_min"] = bracket["weight_min"]
+                    new_row["weight_max"] = bracket["weight_max"]
+                    new_row["pricing_type"] = bracket.get("pricing_type", "PER_100KG")
+                    new_row["cost"] = cleaned_cost
+                    mapped_rows.append(new_row)
+
+        
         # --- LOGIQUE FLAT (Standard) ---
         else:
             mapped_row = {}
@@ -255,6 +541,8 @@ class ColumnMapper:
             
             final_rows.append(r)
 
+
+        # --- LOGIQUE SINGLE GRID (MONACO ITALIE) ---
         return final_rows
 
     def _clean_decimal(self, value: Any) -> Optional[float]:
