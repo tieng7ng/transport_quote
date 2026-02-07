@@ -188,7 +188,6 @@ partners:
         layout: "single_grid"
 
         columns:
-          # La colonne province est "unnamed:_1" après normalisation
           dest_postal_code: "unnamed:_1"
 
         defaults:
@@ -204,7 +203,6 @@ partners:
             regex_extract: "^(\\d+)"
 
         single_grid:
-          # La colonne province est "unnamed:_1" (colonne B)
           province_column: "unnamed:_1"
           brackets:
             # Noms normalisés correspondant aux headers Excel
@@ -232,6 +230,105 @@ partners:
               weight_min: 2501
               weight_max: 3000
               pricing_type: "PER_100KG"
+
+      # ────────────────────────────────────────────────────────────────────────
+      # Feuille 3 : Tarifs Slovénie (3.rates SI)
+      # ────────────────────────────────────────────────────────────────────────
+      - name: "slovenia"
+        sheet_name: "3.rates SI"
+        header_row: 11
+        layout: "zone_matrix"
+        columns: {}
+        defaults:
+          transport_mode: "ROAD"
+          origin_country: "IT"
+          origin_city: "MELZO"
+          dest_country: "SI"
+          dest_city: "ALL"
+          currency: "EUR"
+        zone_matrix:
+          weight_column: "KG"
+
+      # ────────────────────────────────────────────────────────────────────────
+      # Feuille 4 : Tarifs Serbie (4.rates XS)
+      # ────────────────────────────────────────────────────────────────────────
+      - name: "serbia"
+        sheet_name: "4.rates XS"
+        header_row: 10
+        layout: "zone_matrix"
+        columns: {}
+        defaults:
+          transport_mode: "ROAD"
+          origin_country: "IT"
+          origin_city: "MELZO"
+          dest_country: "RS"
+          dest_city: "ALL"
+          currency: "EUR"
+        zone_matrix:
+          weight_column: "Kg"
+          zone_to_postcodes:
+            "A": ["110", "111", "112", "220", "223", "224"]
+            "B": ["113", "114", "115", "142", "143", "150", "152", "153", "210", "211", "212", "222", "260", "262"]
+            "C": ["120", "122", "123", "140", "214", "230", "243", "263", "343", "2521", "2522", "2523", "2524", "2525", "3420", "3421", "3422"]
+            "D": ["233", "240", "241", "242", "244", "250", "320", "322", "323", "340", "350", "352", "2526", "2527", "2528", "3125", "3126", "3423", "3424"]
+            "E": ["310", "360", "361", "362", "370", "3120", "3121", "3122", "3123", "3124"]
+            "F": ["180", "182", "184", "192", "363", "372", "3131", "3133"]
+            "G": ["160", "162", "190", "193", "3130", "3132"]
+            "H": ["170", "175", "181", "183"]
+
+      # ────────────────────────────────────────────────────────────────────────
+      # Feuille 5 : Tarifs Croatie (5.rates HR)
+      # ────────────────────────────────────────────────────────────────────────
+      - name: "croatia"
+        sheet_name: "5.rates HR"
+        header_row: 9
+        layout: "zone_matrix"
+        columns: {}
+        defaults:
+          transport_mode: "ROAD"
+          origin_country: "IT"
+          origin_city: "MELZO"
+          dest_country: "HR"
+          dest_city: "ALL"
+          currency: "EUR"
+        zone_matrix:
+          weight_column: "Kg"
+
+      # ────────────────────────────────────────────────────────────────────────
+      # Feuille 6 : Tarifs Portugal (6.rates PT)
+      # ────────────────────────────────────────────────────────────────────────
+      - name: "portugal"
+        sheet_name: "6.rates PT"
+        header_row: 9
+        layout: "zone_matrix"
+        columns: {}
+        defaults:
+          transport_mode: "ROAD"
+          origin_country: "IT"
+          origin_city: "MELZO"
+          dest_country: "PT"
+          dest_city: "ALL"
+          currency: "EUR"
+        zone_matrix:
+          weight_column: "Kg"
+      
+      # ────────────────────────────────────────────────────────────────────────
+      # Feuille 7 : Tarifs Grèce (7-rates GR-ADReNON)
+      # ────────────────────────────────────────────────────────────────────────
+      - name: "greece"
+        sheet_name: "7-rates GR-ADReNON"
+        header_row: 9
+        layout: "zone_matrix"
+        columns: {}
+        defaults:
+          transport_mode: "ROAD"
+          origin_country: "IT"
+          origin_city: "MELZO"
+          dest_country: "GR"
+          dest_city: "ALL"
+          currency: "EUR"
+        zone_matrix:
+          weight_column: "Kg"
 
   # ══════════════════════════════════════════════════════════════════════════════
   # Configurations legacy (conservées pour rétrocompatibilité)

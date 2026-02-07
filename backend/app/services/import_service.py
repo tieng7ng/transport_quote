@@ -147,11 +147,25 @@ class ImportService:
 
                     total_rows += len(raw_data)
 
+                    prev_weight_max = 0.0
                     for i, row in enumerate(raw_data):
                         row_num = i + 1
                         try:
-                            # Mapping avec la config spécifique de la feuille
-                            mapped_rows_list = mapper.map_row_with_sheet_config(row, sheet_conf)
+                            # Mapping avec la config spécifique de la feuille, avec prev_weight_max
+                            mapped_rows_list = mapper.map_row_with_sheet_config(row, sheet_conf, prev_weight_max)
+                            
+                            # Mise à jour du prev_weight_max pour la prochaine itération
+                            # On cherche le weight_max le plus grand de la ligne courante
+                            current_max = 0.0
+                            for m_row in mapped_rows_list:
+                                if "weight_max" in m_row and m_row["weight_max"] is not None:
+                                    if m_row["weight_max"] > current_max:
+                                        current_max = m_row["weight_max"]
+                            
+                            # Si on a trouvé un max valide, on met à jour.
+                            # Attention : si la ligne ne contient pas de poids (ex: ligne vide ignorée), on garde l'ancien.
+                            if current_max > 0:
+                                prev_weight_max = current_max
 
                             for mapped_row in mapped_rows_list:
                                 try:

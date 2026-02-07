@@ -5,7 +5,7 @@ import { MapPin } from 'lucide-react';
 
 interface CityAutocompleteProps {
     value: string;
-    onChange: (city: string, country?: string) => void;
+    onChange: (city: string, country?: string, zipCode?: string) => void;
     placeholder?: string;
     className?: string;
     country?: string; // Optional filter context
@@ -78,7 +78,7 @@ export const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
 
     const handleSelect = (suggestion: CitySuggestion) => {
         setInputValue(suggestion.city);
-        onChange(suggestion.city, suggestion.country);
+        onChange(suggestion.city, suggestion.country, suggestion.zip);
         setIsOpen(false);
         setSuggestions([]);
     };

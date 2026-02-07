@@ -285,23 +285,263 @@ Ligne 22 (données):
 
 ---
 
-## Feuilles 3-7 : Tarifs Internationaux (Phase 2)
+## Feuille 3 : Tarifs Slovénie (3.rates SI) - Phase 2
 
-### 3.1 Vue d'ensemble
+### 3.1 Périmètre fonctionnel
 
-Ces feuilles seront implémentées dans une phase ultérieure.
-
-| Feuille | Pays | Origine | Statut |
-|---------|------|---------|--------|
-| 3.rates SI | Slovénie | Melzo | 📋 À faire |
-| 4.rates XS | Serbie | Melzo | 📋 À faire |
-| 5.rates HR | Croatie | Melzo | 📋 À faire |
-| 6.rates PT | Portugal | Melzo | 📋 À faire |
-| 7-rates GR-ADReNON | Grèce | Melzo | 📋 À faire |
+| Élément | Valeur |
+|---------|--------|
+| Feuille Excel | `3.rates SI` |
+| Origine | Melzo (Terminal), Italie |
+| Destinations | Slovénie |
+| Mode transport | Route (ROAD) |
+| Statut | 📋 À faire |
 
 ### 3.2 Structure attendue
 
-Les feuilles internationales suivent probablement une structure similaire à la feuille 2.TARIFS NT avec des destinations par ville/région du pays cible.
+Cette feuille suit probablement une structure similaire à la feuille 2.TARIFS NT avec des destinations par ville/région de Slovénie.
+
+---
+
+## Feuille 4 : Tarifs Serbie (4.rates XS) - Phase 2
+
+### 4.1 Périmètre fonctionnel
+
+| Élément | Valeur |
+|---------|--------|
+| Feuille Excel | `4.rates XS` |
+| Origine | Melzo (Terminal), Italie |
+| Destinations | Serbie (code pays ISO : `RS`) |
+| Mode transport | Route (ROAD) |
+| Layout | `zone_matrix` |
+| Header row | 11 (0-indexed: 10) |
+| Statut | 📋 À faire |
+
+### 4.2 Structure de la feuille Excel
+
+La feuille contient **3 sections** :
+
+1. **Rows 11-41** : Matrice tarifs (zones × poids)
+2. **Rows 42-44** : Délais de livraison et frais de transit
+3. **Rows 46-68** : Table de correspondance zones → codes postaux
+
+#### Section 1 : Matrice tarifaire (rows 11-41)
+
+La colonne `Kg` contient les tranches de poids, les colonnes `A` à `H` sont des zones tarifaires.
+
+```
+Row 11 (header):
+┌────────┬────────┬────────┬────────┬────────┬────────┬────────┬────────┬────────┐
+│   Kg   │   A    │   B    │   C    │   D    │   E    │   F    │   G    │   H    │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+
+Row 12+ (données):
+┌────────┬────────┬────────┬────────┬────────┬────────┬────────┬────────┬────────┐
+│  0-20  │ 32.23  │ 34.09  │ 38.15  │ 41.01  │ 45.53  │ 47.63  │ 51.40  │ 53.65  │
+│  -50   │ 34.49  │ 36.60  │ 41.47  │ 44.63  │ 49.74  │ 51.85  │ 55.91  │ 58.17  │
+│  -100  │ 36.19  │ 38.48  │ 43.95  │ 47.33  │ 52.90  │ 55.01  │ 59.30  │ 61.55  │
+│  ...   │  ...   │  ...   │  ...   │  ...   │  ...   │  ...   │  ...   │  ...   │
+│ -10000 │1128.54 │1179.71 │1233.03 │1296.70 │1336.63 │1376.43 │1412.90 │1440.59 │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+```
+
+#### Section 2 : Délais et frais (rows 42-44)
+
+| Row | Donnée | A | B | C | D | E | F | G | H |
+|-----|--------|---|---|---|---|---|---|---|---|
+| 42 | Lead time (cleared) | 24h | 24h | 24h | 24h | 24h | 24h | 24h | 24h |
+| 43 | Lead time (uncleared) | 24h | 48h | 48h | 48h | 48h | 48h | 48h | 48h |
+| 44 | Fee transit doc | 20€ | 20€ | 20€ | 20€ | 20€ | 20€ | 20€ | 20€ |
+
+#### Section 3 : Table zones → codes postaux (rows 46-68)
+
+Les zones `A` à `H` sont des **alias** qui correspondent à des codes postaux serbes. La table de correspondance se trouve en bas de la feuille (4 paires de colonnes `Postcodes | Zone`) :
+
+| Zone | Codes postaux |
+|------|---------------|
+| **A** | 110, 111, 112, 220, 223, 224 |
+| **B** | 113, 114, 115, 142, 143, 150, 152, 153, 210, 211, 212, 222, 260, 262 |
+| **C** | 120, 122, 123, 140, 214, 230, 243, 263, 343, 2521, 2522, 2523, 2524, 2525, 3420, 3421, 3422 |
+| **D** | 233, 240, 241, 242, 244, 250, 320, 322, 323, 340, 350, 352, 2526, 2527, 2528, 3125, 3126, 3423, 3424 |
+| **E** | 310, 360, 361, 362, 370, 3120, 3121, 3122, 3123, 3124 |
+| **F** | 180, 182, 184, 192, 363, 372, 3131, 3133 |
+| **G** | 160, 162, 190, 193, 3130, 3132 |
+| **H** | 170, 175, 181, 183 |
+
+### 4.3 Colonne Kg : tranches de poids cumulatives
+
+La colonne `Kg` utilise une notation **cumulative** où chaque ligne dépend de la précédente :
+
+- `0-20` : explicite, de 0 à 20 kg
+- `-50` : signifie "jusqu'à 50 kg", donc de **21** à 50 kg (weight_max précédent + 1)
+- `-100` : de **51** à 100 kg
+- etc.
+
+#### Grille complète des tranches
+
+| Valeur Excel | `weight_min` | `weight_max` | Règle |
+|---|---|---|---|
+| `0-20` | 0 | 20 | Plage explicite |
+| `-50` | 21 | 50 | Précédent max (20) + 1 |
+| `-100` | 51 | 100 | Précédent max (50) + 1 |
+| `-150` | 101 | 150 | Précédent max (100) + 1 |
+| `-200` | 151 | 200 | Précédent max (150) + 1 |
+| `-250` | 201 | 250 | Précédent max (200) + 1 |
+| `-300` | 251 | 300 | Précédent max (250) + 1 |
+| `-350` | 301 | 350 | Précédent max (300) + 1 |
+| `-400` | 351 | 400 | Précédent max (350) + 1 |
+| `-500` | 401 | 500 | Précédent max (400) + 1 |
+| `-600` | 501 | 600 | Précédent max (500) + 1 |
+| `-700` | 601 | 700 | Précédent max (600) + 1 |
+| `-800` | 701 | 800 | Précédent max (700) + 1 |
+| `-900` | 801 | 900 | Précédent max (800) + 1 |
+| `-1000` | 901 | 1000 | Précédent max (900) + 1 |
+| `-1100` | 1001 | 1100 | Précédent max (1000) + 1 |
+| `-1200` | 1101 | 1200 | Précédent max (1100) + 1 |
+| `-1300` | 1201 | 1300 | Précédent max (1200) + 1 |
+| `-1400` | 1301 | 1400 | Précédent max (1300) + 1 |
+| `-1500` | 1401 | 1500 | Précédent max (1400) + 1 |
+| `-2000` | 1501 | 2000 | Précédent max (1500) + 1 |
+| `-2500` | 2001 | 2500 | Précédent max (2000) + 1 |
+| `-3000` | 2501 | 3000 | Précédent max (2500) + 1 |
+| `-4000` | 3001 | 4000 | Précédent max (3000) + 1 |
+| `-5000` | 4001 | 5000 | Précédent max (4000) + 1 |
+| `-6000` | 5001 | 6000 | Précédent max (5000) + 1 |
+| `-7000` | 6001 | 7000 | Précédent max (6000) + 1 |
+| `-8000` | 7001 | 8000 | Précédent max (7000) + 1 |
+| `-9000` | 8001 | 9000 | Précédent max (8000) + 1 |
+| `-10000` | 9001 | 10000 | Précédent max (9000) + 1 |
+
+#### Représentation en BD (table `partner_quotes`)
+
+Lors de l'import, chaque zone (A, B, ...) doit être **éclatée** en ses codes postaux réels. Chaque combinaison (tranche de poids × code postal) génère **une ligne** en BD.
+
+Exemple : la zone A (tarif 32.23€ pour 0-20 kg) contient les codes postaux 110, 111, 112, 220, 223, 224. Cela produit **6 lignes** :
+
+| `weight_min` | `weight_max` | `cost` | `dest_postal_code` | `dest_country` | `pricing_type` |
+|---|---|---|---|---|---|
+| 0 | 20 | 32.23 | 110 | RS | LUMPSUM |
+| 0 | 20 | 32.23 | 111 | RS | LUMPSUM |
+| 0 | 20 | 32.23 | 112 | RS | LUMPSUM |
+| 0 | 20 | 32.23 | 220 | RS | LUMPSUM |
+| 0 | 20 | 32.23 | 223 | RS | LUMPSUM |
+| 0 | 20 | 32.23 | 224 | RS | LUMPSUM |
+
+Au total : 30 tranches de poids × ~78 codes postaux = **~2340 lignes** en BD pour la Serbie.
+
+#### Impact sur le code
+
+Deux corrections sont nécessaires dans `column_mapper.py` pour le layout `zone_matrix` :
+
+1. **Tranches cumulatives** : La méthode `_parse_weight_key()` traite actuellement chaque ligne **isolément** : `-50` donne `(0, 50)` au lieu de `(21, 50)`. Le traitement doit conserver le `weight_max` de la ligne précédente et l'utiliser comme `weight_min + 1` de la ligne courante.
+
+2. **Résolution zones → codes postaux** : Actuellement `dest_postal_code` reçoit la lettre de zone (`A`, `B`, ...). L'import doit lire la table de correspondance (rows 46-68) et éclater chaque zone en autant de lignes que de codes postaux associés.
+
+### 4.4 Règles métier spécifiques (rows 70-82)
+
+#### Calcul du poids taxable
+```
+Poids taxable = MAX(poids réel, poids volumétrique)
+
+Équivalences :
+- 1 m³ = 250 kg
+- 1 mètre linéaire (ldm) = 1500 kg
+```
+
+#### Surcharges et frais
+
+| Surcharge | Montant | Condition |
+|-----------|---------|-----------|
+| Handling Melzo | 1,00 € / 100 kg | Poids réel |
+| ADR (matières dangereuses) | +10% sur tarif de base | Minimum 5,00 € |
+| Dédouanement export (avec EORI) | 35,00 € | Par envoi |
+| Fuel surcharge | +8% | Depuis le 01/12/2022 |
+| Fee transit doc Serbie | 20,00 € | Par envoi dédouané hors terminal Belgrade |
+
+#### Tarification
+- Prix en EUR **par envoi** (LUMPSUM)
+- Départ le vendredi
+
+### 4.5 Configuration technique
+
+```yaml
+- name: "serbia"
+  sheet_name: "4.rates XS"
+  header_row: 10
+  layout: "zone_matrix"
+  defaults:
+    transport_mode: "ROAD"
+    origin_country: "IT"
+    origin_city: "MELZO"
+    dest_country: "RS"
+    dest_city: "ALL"
+    currency: "EUR"
+  zone_matrix:
+    weight_column: "Kg"
+    zone_to_postcodes:
+      A: ["110", "111", "112", "220", "223", "224"]
+      B: ["113", "114", "115", "142", "143", "150", "152", "153", "210", "211", "212", "222", "260", "262"]
+      C: ["120", "122", "123", "140", "214", "230", "243", "263", "343", "2521", "2522", "2523", "2524", "2525", "3420", "3421", "3422"]
+      D: ["233", "240", "241", "242", "244", "250", "320", "322", "323", "340", "350", "352", "2526", "2527", "2528", "3125", "3126", "3423", "3424"]
+      E: ["310", "360", "361", "362", "370", "3120", "3121", "3122", "3123", "3124"]
+      F: ["180", "182", "184", "192", "363", "372", "3131", "3133"]
+      G: ["160", "162", "190", "193", "3130", "3132"]
+      H: ["170", "175", "181", "183"]
+```
+
+---
+
+## Feuille 5 : Tarifs Croatie (5.rates HR) - Phase 2
+
+### 5.1 Périmètre fonctionnel
+
+| Élément | Valeur |
+|---------|--------|
+| Feuille Excel | `5.rates HR` |
+| Origine | Melzo (Terminal), Italie |
+| Destinations | Croatie |
+| Mode transport | Route (ROAD) |
+| Statut | 📋 À faire |
+
+### 5.2 Structure attendue
+
+Cette feuille suit probablement une structure similaire à la feuille 2.TARIFS NT avec des destinations par ville/région de Croatie.
+
+---
+
+## Feuille 6 : Tarifs Portugal (6.rates PT) - Phase 2
+
+### 6.1 Périmètre fonctionnel
+
+| Élément | Valeur |
+|---------|--------|
+| Feuille Excel | `6.rates PT` |
+| Origine | Melzo (Terminal), Italie |
+| Destinations | Portugal |
+| Mode transport | Route (ROAD) |
+| Statut | 📋 À faire |
+
+### 6.2 Structure attendue
+
+Cette feuille suit probablement une structure similaire à la feuille 2.TARIFS NT avec des destinations par ville/région du Portugal.
+
+---
+
+## Feuille 7 : Tarifs Grèce (7-rates GR-ADReNON) - Phase 2
+
+### 7.1 Périmètre fonctionnel
+
+| Élément | Valeur |
+|---------|--------|
+| Feuille Excel | `7-rates GR-ADReNON` |
+| Origine | Melzo (Terminal), Italie |
+| Destinations | Grèce |
+| Mode transport | Route (ROAD) |
+| Statut | 📋 À faire |
+
+### 7.2 Structure attendue
+
+Cette feuille suit probablement une structure similaire à la feuille 2.TARIFS NT avec des destinations par ville/région de Grèce.
 
 ---
 

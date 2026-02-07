@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search as SearchIcon, Truck, Package, Calendar, MapPin, X, Train, Plane, Ship, ArrowLeft } from 'lucide-react';
 import { QuoteService } from '../services/quoteService';
+import { CityService } from '../services/cityService';
 import { CityAutocomplete } from './ui/CityAutocomplete';
 import { useCustomerQuote } from '../context/CustomerQuoteContext';
+import { COUNTRY_NAMES } from '../constants/countries';
 import type { SearchCriteria } from '../types';
 
 const TRANSPORT_MODE_LABELS: Record<string, { label: string; icon: React.ReactNode; description: string }> = {
@@ -25,6 +27,13 @@ export const SearchModal: React.FC = () => {
     const { isSearchModalOpen, closeSearchModal, selectedTransportMode, setSelectedTransportMode, searchMode } = useCustomerQuote();
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState<'mode' | 'form'>('mode');
+    const [countries, setCountries] = useState<{ origin_countries: string[]; dest_countries: string[] }>({
+        origin_countries: [], dest_countries: []
+    });
+
+    useEffect(() => {
+        CityService.getCountries().then(setCountries).catch(console.error);
+    }, []);
 
     // Initial state
     const [formData, setFormData] = useState<SearchCriteria>({
@@ -93,7 +102,38 @@ export const SearchModal: React.FC = () => {
 
         setLoading(true);
         try {
-            const payload = { ...formData };
+            const payload = { ...formData }; // Clone
+
+            // TENTATIVE DE RESOLUTION AUTOMATIQUE DES CODES POSTAUX MANQUANTS
+            // Si l'utilisateur a tapé "Marseille" sans cliquer sur la suggestion, le CP est vide.
+            // On va chercher le CP correspondant pour filtrer correctement (ex: Marseille -> 13).
+
+            if (payload.origin_city && !payload.origin_postal_code) {
+                try {
+                    const suggestions = await CityService.suggest(payload.origin_city);
+                    const match = suggestions.find(s => s.city.toUpperCase() === payload.origin_city?.toUpperCase());
+                    if (match && match.zip) {
+                        payload.origin_postal_code = match.zip;
+                        console.log(`Auto-resolved Origin: ${payload.origin_city} -> ${match.zip}`);
+                    }
+                } catch (err) {
+                    console.warn("Failed to auto-resolve origin zip", err);
+                }
+            }
+
+            if (payload.dest_city && !payload.dest_postal_code) {
+                try {
+                    const suggestions = await CityService.suggest(payload.dest_city);
+                    const match = suggestions.find(s => s.city.toUpperCase() === payload.dest_city?.toUpperCase());
+                    if (match && match.zip) {
+                        payload.dest_postal_code = match.zip;
+                        console.log(`Auto-resolved Destination: ${payload.dest_city} -> ${match.zip}`);
+                    }
+                } catch (err) {
+                    console.warn("Failed to auto-resolve dest zip", err);
+                }
+            }
+
             if (!payload.transport_mode) delete payload.transport_mode;
             if (!payload.origin_city) delete payload.origin_city;
             if (!payload.dest_city) delete payload.dest_city;
@@ -104,7 +144,7 @@ export const SearchModal: React.FC = () => {
             const results = await QuoteService.search(payload);
 
             closeSearchModal();
-            navigate('/results', { state: { results, criteria: formData } });
+            navigate('/results', { state: { results, criteria: payload } }); // Send updated payload with resolved zips
         } catch (error) {
             console.error("Search failed", error);
             // @ts-expect-error - loose types
@@ -216,11 +256,9 @@ export const SearchModal: React.FC = () => {
                                                     onChange={handleChange}
                                                     className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                                 >
-                                                    <option value="FR">France</option>
-                                                    <option value="DE">Allemagne</option>
-                                                    <option value="IT">Italie</option>
-                                                    <option value="ES">Espagne</option>
-                                                    <option value="BE">Belgique</option>
+                                                    {countries.origin_countries.map(code => (
+                                                        <option key={code} value={code}>{COUNTRY_NAMES[code] || code}</option>
+                                                    ))}
                                                 </select>
                                             </div>
                                             <div>
@@ -239,11 +277,12 @@ export const SearchModal: React.FC = () => {
                                                 <label className="block text-xs font-medium text-gray-500 mb-1">Ville</label>
                                                 <CityAutocomplete
                                                     value={formData.origin_city || ''}
-                                                    onChange={(city, country) => {
+                                                    onChange={(city, country, zip) => {
                                                         setFormData(prev => ({
                                                             ...prev,
                                                             origin_city: city,
-                                                            origin_country: country || prev.origin_country
+                                                            origin_country: country || prev.origin_country,
+                                                            origin_postal_code: zip || prev.origin_postal_code
                                                         }));
                                                     }}
                                                     country={formData.origin_country}
@@ -267,11 +306,9 @@ export const SearchModal: React.FC = () => {
                                                     onChange={handleChange}
                                                     className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                                 >
-                                                    <option value="FR">France</option>
-                                                    <option value="DE">Allemagne</option>
-                                                    <option value="IT">Italie</option>
-                                                    <option value="ES">Espagne</option>
-                                                    <option value="BE">Belgique</option>
+                                                    {countries.dest_countries.map(code => (
+                                                        <option key={code} value={code}>{COUNTRY_NAMES[code] || code}</option>
+                                                    ))}
                                                 </select>
                                             </div>
                                             <div>
@@ -290,11 +327,12 @@ export const SearchModal: React.FC = () => {
                                                 <label className="block text-xs font-medium text-gray-500 mb-1">Ville</label>
                                                 <CityAutocomplete
                                                     value={formData.dest_city || ''}
-                                                    onChange={(city, country) => {
+                                                    onChange={(city, country, zip) => {
                                                         setFormData(prev => ({
                                                             ...prev,
                                                             dest_city: city,
-                                                            dest_country: country || prev.dest_country
+                                                            dest_country: country || prev.dest_country,
+                                                            dest_postal_code: zip || prev.dest_postal_code
                                                         }));
                                                     }}
                                                     country={formData.dest_country}

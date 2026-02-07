@@ -1,13 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search as SearchIcon, Truck, Package, Calendar, MapPin } from 'lucide-react';
 import { QuoteService } from '../services/quoteService';
+import { CityService } from '../services/cityService';
 import { CityAutocomplete } from '../components/ui/CityAutocomplete';
+import { COUNTRY_NAMES } from '../constants/countries';
 import type { SearchCriteria } from '../types';
 
 export const Search: React.FC = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [countries, setCountries] = useState<{ origin_countries: string[]; dest_countries: string[] }>({
+        origin_countries: [], dest_countries: []
+    });
+
+    useEffect(() => {
+        CityService.getCountries().then(setCountries).catch(console.error);
+    }, []);
+
     const [formData, setFormData] = useState<SearchCriteria>({
         origin_country: 'FR',
         origin_postal_code: '',
@@ -106,11 +116,9 @@ export const Search: React.FC = () => {
                                         onChange={handleChange}
                                         className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                     >
-                                        <option value="FR">France</option>
-                                        <option value="DE">Allemagne</option>
-                                        <option value="IT">Italie</option>
-                                        <option value="ES">Espagne</option>
-                                        <option value="BE">Belgique</option>
+                                        {countries.origin_countries.map(code => (
+                                            <option key={code} value={code}>{COUNTRY_NAMES[code] || code}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div>
@@ -158,11 +166,9 @@ export const Search: React.FC = () => {
                                         onChange={handleChange}
                                         className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                     >
-                                        <option value="FR">France</option>
-                                        <option value="DE">Allemagne</option>
-                                        <option value="IT">Italie</option>
-                                        <option value="ES">Espagne</option>
-                                        <option value="BE">Belgique</option>
+                                        {countries.dest_countries.map(code => (
+                                            <option key={code} value={code}>{COUNTRY_NAMES[code] || code}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div>

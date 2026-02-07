@@ -1,4 +1,18 @@
-uploads/
-upload/
+# OS
 .DS_Store
 
+# Uploads
+uploads/
+upload/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Debug scripts
+debug_*.py
+
+# Fichiers temporaires
+problematic_file.xlsx
+util.txt

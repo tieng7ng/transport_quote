@@ -1,6 +1,6 @@
 from typing import List
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, cast, Date
+from sqlalchemy import and_, or_, cast, Date, literal
 from app.models.partner_quote import PartnerQuote
 from app.schemas.matching import QuoteSearchRequest
 
@@ -20,23 +20,25 @@ class MatchingService:
             PartnerQuote.dest_country.ilike(criteria.dest_country)
         )
 
-        # 2b. Optimisation SQL: Code Postal (2 chars)
+        # 2b. Pré-filtre SQL: Code Postal (prefix match bidirectionnel)
+        # Le CP recherché peut commencer par le CP du devis ou l'inverse
+        # Ex: recherche "223" matche devis "223" ; recherche "06200" matche devis "06"
         if criteria.origin_postal_code:
-             # On ne garde que les 2 premiers caractères pour matcher le format DB
-             search_origin = str(criteria.origin_postal_code).strip()[:2]
+             search_origin = str(criteria.origin_postal_code).strip()
              query = query.filter(
                  or_(
-                     PartnerQuote.origin_postal_code == search_origin,
-                     # On garde aussi les NULL pour permettre le matching par Ville plus tard si le CP n'est pas renseigné sur le devis
+                     PartnerQuote.origin_postal_code.startswith(search_origin),
+                     literal(search_origin).like(PartnerQuote.origin_postal_code + '%'),
                      PartnerQuote.origin_postal_code.is_(None)
                  )
              )
-             
+
         if criteria.dest_postal_code:
-             search_dest = str(criteria.dest_postal_code).strip()[:2]
+             search_dest = str(criteria.dest_postal_code).strip()
              query = query.filter(
                  or_(
-                     PartnerQuote.dest_postal_code == search_dest,
+                     PartnerQuote.dest_postal_code.startswith(search_dest),
+                     literal(search_dest).like(PartnerQuote.dest_postal_code + '%'),
                      PartnerQuote.dest_postal_code.is_(None)
                  )
              )
@@ -122,6 +124,8 @@ class MatchingService:
                 # Pour l'instant: Si user cherche sans CP, on ignore les devis avec CP spécifique ? 
                 # Non, "Nice" doit matcher "06000 Nice".
                 # Simplification: Si User n'a pas de CP, on check la ville.
+                if quote_city and quote_city.strip().upper() == "ALL":
+                    return True
                 if search_city and quote_city:
                     return search_city.strip().upper() == quote_city.strip().upper()
                 return False # Pas de CP recherche et pas de correspondance ville possible
@@ -144,6 +148,8 @@ class MatchingService:
 
         # 2. Matching par Ville (Si le devis n'a PAS de CP)
         if quote_city:
+            if quote_city.strip().upper() == "ALL":
+                return True
             if not search_city:
                 return False # Devis spécifique ville, recherche sans ville (et sans CP matché avant)
             return search_city.strip().upper() == quote_city.strip().upper()

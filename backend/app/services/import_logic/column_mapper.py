@@ -61,7 +61,7 @@ class ColumnMapper:
             return []
         return p_conf.get("sheets", [])
 
-    def map_row_with_sheet_config(self, row: Dict[str, Any], sheet_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def map_row_with_sheet_config(self, row: Dict[str, Any], sheet_config: Dict[str, Any], prev_weight_max: float = 0.0) -> List[Dict[str, Any]]:
         """
         Transforme une ligne brute en utilisant une configuration de feuille spécifique.
         Utilisé pour le layout multi_sheet où chaque feuille a sa propre config.
@@ -213,6 +213,81 @@ class ColumnMapper:
                     new_row["cost"] = cleaned_cost
                     mapped_rows.append(new_row)
 
+        # --- LOGIQUE ZONE MATRIX (Internationale Phase 2) ---
+        elif sheet_layout == "zone_matrix":
+            zone_conf = sheet_config.get("zone_matrix", {})
+            weight_col_name = zone_conf.get("weight_column", "kg")
+            # Construire un mapping insensible à la casse (les headers pandas peuvent être en minuscules)
+            raw_zone_mappings = zone_conf.get("zone_to_postcodes", {})
+            zone_mappings = {k.upper(): v for k, v in raw_zone_mappings.items()}
+
+            base_row = {}
+            for col_name, value in row.items():
+                normalized_col = self._normalize(col_name)
+                if normalized_col in alias_map:
+                    for target_field in alias_map[normalized_col]:
+                        base_row[target_field] = value
+                elif self._normalize(col_name) in self.default_mapping:
+                    base_row[self._normalize(col_name)] = value
+
+            defaults = sheet_config.get("defaults", {})
+            for field, value in defaults.items():
+                if field not in base_row or base_row[field] is None:
+                    base_row[field] = value
+
+            weight_val = None
+            weight_norm = self._normalize(weight_col_name)
+
+            for col_name, value in row.items():
+                if self._normalize(col_name) == weight_norm:
+                    weight_val = value
+                    break
+
+            if weight_val is not None:
+                w_min, w_max = self._parse_weight_key(weight_val, prev_weight_max)
+
+                for col_name, value in row.items():
+                    norm_col = self._normalize(col_name)
+                    if norm_col == weight_norm:
+                        continue
+                    if "unnamed" in norm_col or value is None:
+                        continue
+
+                    cost = self._clean_decimal(value)
+                    if cost is not None:
+                        dest_key = str(col_name).strip().upper()
+
+                        if dest_key in zone_mappings:
+                            postcodes = zone_mappings[dest_key]
+                            if isinstance(postcodes, list):
+                                for pc in postcodes:
+                                    new_row = base_row.copy()
+                                    new_row["weight_min"] = w_min
+                                    new_row["weight_max"] = w_max
+                                    new_row["cost"] = cost
+                                    new_row["dest_postal_code"] = str(pc).strip()
+                                    if "pricing_type" not in new_row:
+                                        new_row["pricing_type"] = "LUMPSUM"
+                                    mapped_rows.append(new_row)
+                            else:
+                                new_row = base_row.copy()
+                                new_row["weight_min"] = w_min
+                                new_row["weight_max"] = w_max
+                                new_row["cost"] = cost
+                                new_row["dest_postal_code"] = str(postcodes).strip()
+                                if "pricing_type" not in new_row:
+                                    new_row["pricing_type"] = "LUMPSUM"
+                                mapped_rows.append(new_row)
+                        else:
+                            new_row = base_row.copy()
+                            new_row["weight_min"] = w_min
+                            new_row["weight_max"] = w_max
+                            new_row["cost"] = cost
+                            new_row["dest_postal_code"] = dest_key
+                            if "pricing_type" not in new_row:
+                                new_row["pricing_type"] = "LUMPSUM"
+                            mapped_rows.append(new_row)
+
         # --- LOGIQUE FLAT ---
         else:
             mapped_row = {}
@@ -255,7 +330,7 @@ class ColumnMapper:
 
         return final_rows
 
-    def map_row(self, row: Dict[str, Any], partner_code: Optional[str] = None) -> List[Dict[str, Any]]:
+    def map_row(self, row: Dict[str, Any], partner_code: Optional[str] = None, prev_weight_max: float = 0.0) -> List[Dict[str, Any]]:
         """
         Transforme une ligne brute en une ou plusieurs lignes mappées.
         Retourne toujours une LISTE de dictionnaires.
@@ -492,8 +567,6 @@ class ColumnMapper:
                     new_row["cost"] = cleaned_cost
                     mapped_rows.append(new_row)
 
-        
-        # --- LOGIQUE FLAT (Standard) ---
         else:
             mapped_row = {}
             for col_name, value in row.items():
@@ -576,3 +649,39 @@ class ColumnMapper:
         except:
             pass
         return text.replace(" ", "_").replace("-", "_")
+
+    def _parse_weight_key(self, val: Any, prev_weight_max: float = 0.0) -> tuple:
+        """
+        Parse weight keys like "0-20", "-50", "50", "100".
+        Returns (min, max).
+        """
+        s_val = str(val).strip().replace(" ", "")
+        try:
+            # "0-20"
+            if "-" in s_val and not s_val.startswith("-"):
+                parts = s_val.split("-")
+                if len(parts) == 2:
+                    return float(parts[0]), float(parts[1])
+            
+            # "-50" -> prev_weight_max + 1 to 50
+            if s_val.startswith("-"):
+                 w_max = float(s_val[1:])
+                 w_min = prev_weight_max + 1 if prev_weight_max > 0 else 0.0 # Ou + 0.01 ? Le client dit "21-50".
+                 # Si "0-20" fini a 20. "21-50" -> min = 20 + 1 = 21.
+                 # Si on met 20.01 ce serait plus précis pour float, mais souvent logistique = entier.
+                 # On va assumer entier pour l'instant : +1
+                 # MAIS : prev_weight_max pourrait être 0.
+                 
+                 # Fix: si prev est 0, alors min est 0.
+                 # Non, "0-20" est explicite.
+                 # "-50" est la 2eme ligne.
+                 # Imaginons premiere ligne "-20". prev=0. min=0.
+                 if prev_weight_max == 0.0:
+                      return 0.0, w_max
+                 return prev_weight_max + 1.0, w_max
+            
+            # "50" -> 0 to 50 (Implying Max Weight step)
+            return 0.0, float(s_val)
+            
+        except:
+            return 0.0, 0.0
