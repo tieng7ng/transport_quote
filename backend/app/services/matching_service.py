@@ -103,7 +103,8 @@ class MatchingService:
                 # Since this is a read-only operation and we don't call db.commit(), strictly speaking it's "safe" 
                 # but good practice is to not mutate DB objects.
                 # Let's rely on the fact we don't commit.
-                quote.cost = computed_cost
+                # Round to 2 decimals
+                quote.cost = round(computed_cost, 2)
                 matched_quotes.append(quote)
                 
         return matched_quotes
@@ -134,7 +135,9 @@ class MatchingService:
             clean_search_cp = str(search_cp).strip().upper()
             clean_quote_cp = str(quote_cp).strip().upper()
             
-            if clean_search_cp.startswith(clean_quote_cp):
+            # Bidirectional Prefix Match (match SQL logic)
+            # "33" matches "33000" AND "33000" matches "33"
+            if clean_search_cp.startswith(clean_quote_cp) or clean_quote_cp.startswith(clean_search_cp):
                  # CP Match OK. Verifions la Ville si demandée
                  if search_city and quote_city:
                      s_city = search_city.strip().upper()
@@ -145,6 +148,21 @@ class MatchingService:
                      return False
                      
                  return True
+            
+            # If CP is present but doesn't match:
+            # DOES NOT return False immediately?
+            # Current logic fell through to City check.
+            # If we want to be strict: if Quote has CP, and it mismatches, we should Fail.
+            # EXCEPT if the City matches exactly?
+            # E.g. Quote "33000 Bordeaux". Search "33000 Paris".
+            # CP matches. City mismatches. Returns False (lines above).
+            
+            # E.g. Quote "33000 Bordeaux". Search "99999 Bordeaux".
+            # CP mismatches.
+            # Should we allow it?
+            # Generally NO. If DB has CP, it implies validity scope.
+            
+            return False
 
         # 2. Matching par Ville (Si le devis n'a PAS de CP)
         if quote_city:

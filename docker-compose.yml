@@ -53,7 +53,7 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: https://transportquote.duckdns.org/transport/api/v1
+        VITE_API_URL: /transport/api/v1
         VITE_BASE_PATH: /transport/
     container_name: transport_quote_frontend
     ports:
