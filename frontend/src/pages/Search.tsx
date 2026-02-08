@@ -126,9 +126,9 @@ export const Search: React.FC = () => {
                                         name="origin_postal_code"
                                         value={formData.origin_postal_code}
                                         onChange={handleChange}
-                                        maxLength={3}
+                                        maxLength={10}
                                         className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                        placeholder="75"
+                                        placeholder="75000"
                                     />
                                 </div>
                                 <div className="col-span-2">
@@ -176,9 +176,9 @@ export const Search: React.FC = () => {
                                         name="dest_postal_code"
                                         value={formData.dest_postal_code}
                                         onChange={handleChange}
-                                        maxLength={3}
+                                        maxLength={10}
                                         className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                        placeholder="69"
+                                        placeholder="69000"
                                     />
                                 </div>
                                 <div className="col-span-2">

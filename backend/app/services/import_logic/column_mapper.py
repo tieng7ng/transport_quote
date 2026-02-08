@@ -680,8 +680,12 @@ class ColumnMapper:
                       return 0.0, w_max
                  return prev_weight_max + 1.0, w_max
             
-            # "50" -> 0 to 50 (Implying Max Weight step)
-            return 0.0, float(s_val)
+            # "50" -> prev_weight_max + 1 to 50 (Sequential Logic)
+            # This handles cases like 100, 200, 300 where each row is a bracket
+            w_max = float(s_val)
+            if prev_weight_max == 0.0:
+                 return 0.0, w_max
+            return prev_weight_max + 1.0, w_max
             
         except:
             return 0.0, 0.0

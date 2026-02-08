@@ -243,6 +243,7 @@ partners:
           transport_mode: "ROAD"
           origin_country: "IT"
           origin_city: "MELZO"
+          origin_postal_code: "20066"
           dest_country: "SI"
           dest_city: "ALL"
           currency: "EUR"
@@ -261,6 +262,7 @@ partners:
           transport_mode: "ROAD"
           origin_country: "IT"
           origin_city: "MELZO"
+          origin_postal_code: "20066"
           dest_country: "RS"
           dest_city: "ALL"
           currency: "EUR"
@@ -288,11 +290,21 @@ partners:
           transport_mode: "ROAD"
           origin_country: "IT"
           origin_city: "MELZO"
+          origin_postal_code: "20066"
           dest_country: "HR"
           dest_city: "ALL"
           currency: "EUR"
         zone_matrix:
           weight_column: "Kg"
+          # Codes postaux = préfixes (ex: 10000 -> 10...)
+          zone_to_postcodes:
+            "A": ["10000"]
+            "B": ["10290", "10340", "10370", "10410", "10430"]
+            "C": ["42000", "42240", "43000", "44000", "44310", "44320", "47000", "49000", "49210"]
+            "D": ["33000", "33520", "40000", "48000"]
+            "E": ["31000", "31400", "32000", "32100", "32270", "34000", "35000", "51000", "51300", "53000", "53220", "53270"]
+            "F": ["21000", "21260", "21300", "22000", "22320", "52000", "52210", "52440", "52470"]
+            "G": ["20000", "20340", "20350"]
 
       # ────────────────────────────────────────────────────────────────────────
       # Feuille 6 : Tarifs Portugal (6.rates PT)
@@ -306,6 +318,7 @@ partners:
           transport_mode: "ROAD"
           origin_country: "IT"
           origin_city: "MELZO"
+          origin_postal_code: "20066"
           dest_country: "PT"
           dest_city: "ALL"
           currency: "EUR"
@@ -324,6 +337,7 @@ partners:
           transport_mode: "ROAD"
           origin_country: "IT"
           origin_city: "MELZO"
+          origin_postal_code: "20066"
           dest_country: "GR"
           dest_city: "ALL"
           currency: "EUR"

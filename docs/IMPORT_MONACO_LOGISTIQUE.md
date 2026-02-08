@@ -499,13 +499,205 @@ Poids taxable = MAX(poids réel, poids volumétrique)
 |---------|--------|
 | Feuille Excel | `5.rates HR` |
 | Origine | Melzo (Terminal), Italie |
-| Destinations | Croatie |
+| Destinations | Croatie (code pays ISO : `HR`) |
 | Mode transport | Route (ROAD) |
+| Layout | `zone_matrix` |
+| Header row | 10 (0-indexed: 9) |
 | Statut | 📋 À faire |
 
-### 5.2 Structure attendue
+### 5.2 Structure de la feuille Excel
 
-Cette feuille suit probablement une structure similaire à la feuille 2.TARIFS NT avec des destinations par ville/région de Croatie.
+La feuille contient **3 sections** :
+
+1. **Rows 10-36** : Matrice tarifs (zones × poids)
+2. **Rows 38-51** : Table de correspondance zones → codes postaux
+3. **Rows 53-71** : Conditions générales, délais de livraison et contacts
+
+#### Section 1 : Matrice tarifaire (rows 10-36)
+
+La colonne `Kg` contient les tranches de poids, les colonnes `A` à `G` sont des zones tarifaires (7 zones).
+
+```
+Row 10 (header):
+┌────────┬────────┬────────┬────────┬────────┬────────┬────────┬────────┐
+│   Kg   │   A    │   B    │   C    │   D    │   E    │   F    │   G    │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+
+Row 11+ (données):
+┌────────┬────────┬────────┬────────┬────────┬────────┬────────┬────────┐
+│  100   │ 49.85  │ 50.25  │ 51.28  │ 54.25  │ 56.45  │ 66.96  │ 72.39  │
+│  200   │ 60.37  │ 60.80  │ 61.72  │ 73.23  │ 75.12  │ 80.19  │ 96.67  │
+│  300   │ 79.34  │ 81.85  │ 85.06  │ 98.85  │106.93  │112.01  │127.41  │
+│  ...   │  ...   │  ...   │  ...   │  ...   │  ...   │  ...   │  ...   │
+│ 3000   │556.94  │581.19  │615.84  │660.25  │682.69  │821.55  │889.69  │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+```
+
+#### Section 2 : Table zones → codes postaux (rows 38-51)
+
+Les zones `A` à `G` sont des **alias** qui correspondent à des préfixes de codes postaux croates. La table de correspondance se trouve en dessous de la matrice (4 paires de colonnes `Postcodes | Zone`) :
+
+| Zone | Codes postaux | Région |
+|------|---------------|--------|
+| **A** | 10000 | Zagreb centre |
+| **B** | 10290, 10340, 10370, 10410, 10430 | Banlieue de Zagreb |
+| **C** | 42000, 42240, 43000, 44000, 44310, 44320, 47000, 49000, 49210 | Croatie du Nord/Centre (Varazdin, Bjelovar, Sisak, Karlovac, Krapina) |
+| **D** | 33000, 33520, 40000, 48000 | Centre-Nord (Virovitica, Cakovec, Koprivnica) |
+| **E** | 31000, 31400, 32000, 32100, 32270, 34000, 35000, 51000, 51300, 53000, 53220, 53270 | Slavonie Est + Rijeka + Lika (Osijek, Vukovar, Pozega, Slavonski Brod, Rijeka, Gospic) |
+| **F** | 21000, 21260, 21300, 22000, 22320, 52000, 52210, 52440, 52470 | Côte dalmate + Istrie (Split, Sibenik, Pula) |
+| **G** | 20000, 20340, 20350 | Région de Dubrovnik |
+
+**Note** : Les codes postaux sont des **préfixes**. Par exemple, le code 10290 correspond à toutes les localités dont le code postal commence par 10290.
+
+#### Section 3 : Conditions générales et délais (rows 53-71)
+
+| Row | Donnée |
+|-----|--------|
+| 53 | General conditions |
+| 54 | 1 cbm = 250 kg, 1 ldm = 1500 kg |
+| 55 | Handling in Melzo : 1,00 € / 100 kg real weight |
+| 56 | Handling in Zagreb : 1,50 € / 100 kg real weight |
+| 57 | Rates in EUR per each shipment |
+| 58 | ADR shipments + 10% |
+| 59 | Islands + 50% |
+| 61 | Fuel surcharge: from 01/12/22 + 8% |
+| 63-66 | Lead time (voir détails ci-dessous) |
+| 67 | Departure on Friday |
+
+### 5.3 Colonne Kg : tranches de poids cumulatives
+
+La colonne `Kg` contient des **valeurs simples** représentant le poids maximum de chaque tranche. Le poids minimum est déduit du maximum de la tranche précédente + 1 :
+
+- `100` : de 0 à 100 kg (première tranche)
+- `200` : de **101** à 200 kg (précédent max (100) + 1)
+- `300` : de **201** à 300 kg
+- etc.
+
+**Attention** : Les tranches ne sont **pas régulières** — des paliers irréguliers apparaissent (1200→1250, 1700→1750, 1900→2000, 2000→2200).
+
+#### Grille complète des tranches
+
+| Valeur Excel | `weight_min` | `weight_max` | Règle |
+|---|---|---|---|
+| `100` | 0 | 100 | Première tranche |
+| `200` | 101 | 200 | Précédent max (100) + 1 |
+| `300` | 201 | 300 | Précédent max (200) + 1 |
+| `400` | 301 | 400 | Précédent max (300) + 1 |
+| `500` | 401 | 500 | Précédent max (400) + 1 |
+| `600` | 501 | 600 | Précédent max (500) + 1 |
+| `700` | 601 | 700 | Précédent max (600) + 1 |
+| `800` | 701 | 800 | Précédent max (700) + 1 |
+| `900` | 801 | 900 | Précédent max (800) + 1 |
+| `1000` | 901 | 1000 | Précédent max (900) + 1 |
+| `1100` | 1001 | 1100 | Précédent max (1000) + 1 |
+| `1200` | 1101 | 1200 | Précédent max (1100) + 1 |
+| `1250` | 1201 | 1250 | Précédent max (1200) + 1 |
+| `1300` | 1251 | 1300 | Précédent max (1250) + 1 |
+| `1400` | 1301 | 1400 | Précédent max (1300) + 1 |
+| `1500` | 1401 | 1500 | Précédent max (1400) + 1 |
+| `1600` | 1501 | 1600 | Précédent max (1500) + 1 |
+| `1700` | 1601 | 1700 | Précédent max (1600) + 1 |
+| `1750` | 1701 | 1750 | Précédent max (1700) + 1 |
+| `1900` | 1751 | 1900 | Précédent max (1750) + 1 |
+| `2000` | 1901 | 2000 | Précédent max (1900) + 1 |
+| `2200` | 2001 | 2200 | Précédent max (2000) + 1 |
+| `2250` | 2201 | 2250 | Précédent max (2200) + 1 |
+| `2500` | 2251 | 2500 | Précédent max (2250) + 1 |
+| `2750` | 2501 | 2750 | Précédent max (2500) + 1 |
+| `3000` | 2751 | 3000 | Précédent max (2750) + 1 |
+
+#### Représentation en BD (table `partner_quotes`)
+
+Lors de l'import, chaque zone (A, B, ...) doit être **éclatée** en ses codes postaux réels. Chaque combinaison (tranche de poids × code postal) génère **une ligne** en BD.
+
+Exemple : la zone A (tarif 49.85€ pour 0-100 kg) contient le code postal 10000. Cela produit **1 ligne** :
+
+| `weight_min` | `weight_max` | `cost` | `dest_postal_code` | `dest_country` | `pricing_type` |
+|---|---|---|---|---|---|
+| 0 | 100 | 49.85 | 10000 | HR | LUMPSUM |
+
+La zone E (tarif 56.45€ pour 0-100 kg) contient 12 codes postaux, ce qui produit **12 lignes** pour cette seule tranche.
+
+Au total : 26 tranches de poids × ~42 codes postaux = **~1092 lignes** en BD pour la Croatie.
+
+#### Impact sur le code
+
+Le parsing est similaire à la feuille Serbie (`zone_matrix`) avec deux différences :
+
+1. **Format de la colonne Kg** : Les valeurs sont des entiers simples (`100`, `200`, `300`...) au lieu de la notation cumulative avec tiret (`0-20`, `-50`, `-100`...). La méthode `_parse_weight_key()` doit gérer ce format.
+
+2. **Codes postaux 5 chiffres** : Les codes postaux croates sont des préfixes à 5 chiffres (ex: `10000`, `21000`) contrairement aux codes serbes à 3 chiffres.
+
+### 5.4 Règles métier spécifiques (rows 53-67)
+
+#### Calcul du poids taxable
+```
+Poids taxable = MAX(poids réel, poids volumétrique)
+
+Équivalences :
+- 1 m³ = 250 kg
+- 1 mètre linéaire (ldm) = 1500 kg
+```
+
+#### Surcharges et frais
+
+| Surcharge | Montant | Condition |
+|-----------|---------|-----------|
+| Handling Melzo | 1,00 € / 100 kg | Poids réel |
+| Handling Zagreb | 1,50 € / 100 kg | Poids réel |
+| ADR (matières dangereuses) | +10% sur tarif de base | |
+| Îles | +50% sur tarif de base | |
+| Fuel surcharge | +8% | Depuis le 01/12/2022 |
+
+**Note** : Contrairement à la Serbie, la Croatie a un **double handling** (Melzo + Zagreb).
+
+#### Délais de livraison
+
+| Destination | Délai |
+|-------------|-------|
+| Général (toutes zones sauf G et îles) | 24h |
+| Dubrovnik et environs (Zone G) | 48h |
+| Îles | Sur demande (dépend des ferries, horaire été/hiver) |
+
+#### Tarification
+- Prix en EUR **par envoi** (LUMPSUM)
+- Départ le vendredi
+
+### 5.5 Exemples de tarifs
+
+| Kg | Zone A (Zagreb) | Zone C (Varazdin) | Zone E (Osijek/Rijeka) | Zone G (Dubrovnik) |
+|----|-----------------|-------------------|------------------------|---------------------|
+| 100 | 49,85€ | 51,28€ | 56,45€ | 72,39€ |
+| 500 | 125,60€ | 135,76€ | 149,78€ | 170,26€ |
+| 1000 | 231,40€ | 265,72€ | 293,11€ | 325,71€ |
+| 2000 | 434,22€ | 491,61€ | 531,54€ | 638,62€ |
+| 3000 | 556,94€ | 615,84€ | 682,69€ | 889,69€ |
+
+### 5.6 Configuration technique
+
+```yaml
+- name: "croatia"
+  sheet_name: "5.rates HR"
+  header_row: 9
+  layout: "zone_matrix"
+  defaults:
+    transport_mode: "ROAD"
+    origin_country: "IT"
+    origin_city: "MELZO"
+    dest_country: "HR"
+    dest_city: "ALL"
+    currency: "EUR"
+  zone_matrix:
+    weight_column: "Kg"
+    zone_to_postcodes:
+      A: ["10000"]
+      B: ["10290", "10340", "10370", "10410", "10430"]
+      C: ["42000", "42240", "43000", "44000", "44310", "44320", "47000", "49000", "49210"]
+      D: ["33000", "33520", "40000", "48000"]
+      E: ["31000", "31400", "32000", "32100", "32270", "34000", "35000", "51000", "51300", "53000", "53220", "53270"]
+      F: ["21000", "21260", "21300", "22000", "22320", "52000", "52210", "52440", "52470"]
+      G: ["20000", "20340", "20350"]
+```
 
 ---
 

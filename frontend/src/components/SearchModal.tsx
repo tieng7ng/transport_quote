@@ -268,8 +268,8 @@ export const SearchModal: React.FC = () => {
                                                     value={formData.origin_postal_code}
                                                     onChange={handleChange}
                                                     className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                                    placeholder="75"
-                                                    maxLength={3}
+                                                    placeholder="75000"
+                                                    maxLength={10}
                                                 />
                                             </div>
                                             <div className="col-span-2">
@@ -318,8 +318,8 @@ export const SearchModal: React.FC = () => {
                                                     value={formData.dest_postal_code}
                                                     onChange={handleChange}
                                                     className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                                    placeholder="69"
-                                                    maxLength={3}
+                                                    placeholder="69000"
+                                                    maxLength={10}
                                                 />
                                             </div>
                                             <div className="col-span-2">
