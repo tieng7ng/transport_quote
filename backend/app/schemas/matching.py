@@ -1,5 +1,6 @@
 from typing import Optional, List
-from pydantic import BaseModel, Field, model_validator
+from decimal import Decimal
+from pydantic import BaseModel, Field, model_validator, field_serializer
 from datetime import date
 from app.models.partner_quote import TransportMode
 from app.schemas.partner_quote import PartnerQuoteResponse
@@ -32,4 +33,6 @@ class QuoteSearchRequest(BaseModel):
         return self
 
 class QuoteMatchResult(PartnerQuoteResponse):
-    pass
+    @field_serializer('cost')
+    def serialize_cost(self, cost: Decimal, _info):
+        return f"{cost:.2f}"
