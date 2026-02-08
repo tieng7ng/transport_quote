@@ -311,7 +311,7 @@ partners:
       # ────────────────────────────────────────────────────────────────────────
       - name: "portugal"
         sheet_name: "6.rates PT"
-        header_row: 9
+        header_row: 10
         layout: "zone_matrix"
         columns: {}
         defaults:
@@ -324,6 +324,17 @@ partners:
           currency: "EUR"
         zone_matrix:
           weight_column: "Kg"
+          # Plages Excel converties en préfixes pour le prefix matching existant
+          # Attention : 4000-4479 / 4480-4699 nécessitent des préfixes à 3 chiffres (440-447 vs 448-449)
+          # Clés avec underscore pour matcher les headers pandas normalisés
+          # (excel_parser.py: "Zone 1" → "zone_1" → .upper() → "ZONE_1")
+          zone_to_postcodes:
+            "Zone_1": ["26", "27", "40", "41", "42", "43", "440", "441", "442", "443", "444", "445", "446", "447"]
+            "Zone_2": ["1", "28", "29", "37", "38", "448", "449", "45", "46"]
+            "Zone_3": ["25", "33", "34", "35", "36", "47", "48"]
+            "Zone_4": ["20", "21", "22", "23", "24", "30", "31", "32", "49"]
+            "Zone_5": ["50", "51", "52"]
+            "Zone_6": ["53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63"]
       
       # ────────────────────────────────────────────────────────────────────────
       # Feuille 7 : Tarifs Grèce (7-rates GR-ADReNON)

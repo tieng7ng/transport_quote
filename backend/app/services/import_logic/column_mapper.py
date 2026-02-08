@@ -220,6 +220,10 @@ class ColumnMapper:
             # Construire un mapping insensible à la casse (les headers pandas peuvent être en minuscules)
             raw_zone_mappings = zone_conf.get("zone_to_postcodes", {})
             zone_mappings = {k.upper(): v for k, v in raw_zone_mappings.items()}
+            
+            # Support for ranges (Portugal)
+            raw_zone_ranges = zone_conf.get("zone_to_postcode_ranges", {})
+            zone_ranges_mappings = {k.upper(): v for k, v in raw_zone_ranges.items()}
 
             base_row = {}
             for col_name, value in row.items():
@@ -278,6 +282,27 @@ class ColumnMapper:
                                 if "pricing_type" not in new_row:
                                     new_row["pricing_type"] = "LUMPSUM"
                                 mapped_rows.append(new_row)
+                        
+                        elif dest_key in zone_ranges_mappings:
+                             # New logic for ranges
+                             ranges = zone_ranges_mappings[dest_key]
+                             # ranges is list of [start, end]
+                             all_prefixes = []
+                             for r in ranges:
+                                 if isinstance(r, list) and len(r) == 2:
+                                     prefixes = self._generate_prefixes_for_range(str(r[0]), str(r[1]))
+                                     all_prefixes.extend(prefixes)
+                             
+                             for pc in all_prefixes:
+                                 new_row = base_row.copy()
+                                 new_row["weight_min"] = w_min
+                                 new_row["weight_max"] = w_max
+                                 new_row["cost"] = cost
+                                 new_row["dest_postal_code"] = str(pc).strip()
+                                 if "pricing_type" not in new_row:
+                                     new_row["pricing_type"] = "LUMPSUM"
+                                 mapped_rows.append(new_row)
+
                         else:
                             new_row = base_row.copy()
                             new_row["weight_min"] = w_min
@@ -657,6 +682,11 @@ class ColumnMapper:
         """
         s_val = str(val).strip().replace(" ", "")
         try:
+            # "Up to 200" -> "Upto200" (spaces removed above)
+            if "upto" in s_val.lower():
+                w_max = float(s_val.lower().replace("upto", "").strip())
+                return 0.0, w_max
+            
             # "0-20"
             if "-" in s_val and not s_val.startswith("-"):
                 parts = s_val.split("-")
@@ -689,3 +719,83 @@ class ColumnMapper:
             
         except:
             return 0.0, 0.0
+
+    def _generate_prefixes_for_range(self, start_str: str, end_str: str) -> List[str]:
+        """
+        Génère une liste de préfixes optimaux pour couvrir une plage inclusive.
+        Ex: "4000", "4479" -> ["40", "41", "42", "43", "440", "441", ..., "447"]
+        Assumes 4-digit strings inputs.
+        """
+        try:
+            start = int(start_str)
+            end = int(end_str)
+        except:
+            return [start_str]
+
+        if start > end:
+            return []
+        
+        prefixes = []
+        # Re-implementing a simpler recursive algo
+        # 1. Pad to 4 chars (assuming Portugal logic 4 digits)
+        # Actually general logic: pad to max length of inputs
+        max_len = max(len(start_str), len(end_str))
+        s_str = f"{start:0{max_len}d}"
+        e_str = f"{end:0{max_len}d}"
+        
+        self._recurse_prefixes(s_str, e_str, prefixes)
+        return prefixes
+    
+    def _recurse_prefixes(self, start: str, end: str, results: List[str]):
+        if int(start) > int(end):
+            return
+        
+        # If start and end match, exact code
+        if start == end:
+            results.append(start)
+            return
+            
+        # Try to find a common prefix for the whole range
+        # Length of string
+        L = len(start)
+        for i in range(L):
+            suffix_len = L - i
+            prefix = start[:i]
+            
+            # Check if we can collapse from i to end
+            if start[i:] == '0' * suffix_len and end[i:] == '9' * suffix_len:
+                if start[:i] == end[:i]:
+                    results.append(prefix)
+                    return
+
+        # If we can't collapse the whole thing, check matching prefix
+        uniq_prefix_len = 0
+        while uniq_prefix_len < L and start[uniq_prefix_len] == end[uniq_prefix_len]:
+            uniq_prefix_len += 1
+            
+        common = start[:uniq_prefix_len]
+        
+        # Divergence at uniq_prefix_len
+        s_digit = int(start[uniq_prefix_len])
+        e_digit = int(end[uniq_prefix_len])
+        
+        for d in range(s_digit, e_digit + 1):
+            current_prefix = common + str(d)
+            
+            if d > s_digit and d < e_digit:
+                # Full intermediate block
+                results.append(current_prefix)
+            
+            elif d == s_digit and d == e_digit:
+                 # Should not happen as loop bounds defined by diff
+                 pass
+            
+            elif d == s_digit:
+                # Recurse on the lower bound
+                new_end = current_prefix + '9' * (L - uniq_prefix_len - 1)
+                self._recurse_prefixes(start, new_end, results)
+                
+            elif d == e_digit:
+                # Recurse on the upper bound
+                new_start = current_prefix + '0' * (L - uniq_prefix_len - 1)
+                self._recurse_prefixes(new_start, end, results)

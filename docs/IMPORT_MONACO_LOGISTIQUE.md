@@ -709,13 +709,251 @@ Poids taxable = MAX(poids réel, poids volumétrique)
 |---------|--------|
 | Feuille Excel | `6.rates PT` |
 | Origine | Melzo (Terminal), Italie |
-| Destinations | Portugal |
+| Destinations | Portugal (code pays ISO : `PT`) |
 | Mode transport | Route (ROAD) |
+| Layout | `zone_matrix` |
+| Header row | 11 (0-indexed: 10) |
 | Statut | 📋 À faire |
 
-### 6.2 Structure attendue
+### 6.2 Structure de la feuille Excel
 
-Cette feuille suit probablement une structure similaire à la feuille 2.TARIFS NT avec des destinations par ville/région du Portugal.
+La feuille contient **3 sections** :
+
+1. **Rows 11-40** : Matrice tarifs (zones × poids)
+2. **Rows 42-50** : Table de correspondance zones → plages de codes postaux
+3. **Rows 52-66** : Conditions générales, délais de livraison et contacts
+
+#### Section 1 : Matrice tarifaire (rows 11-40)
+
+La colonne `Kg` contient les tranches de poids sous forme de **plages explicites**, les colonnes `Zone 1` à `Zone 6` sont des zones tarifaires (6 zones).
+
+```
+Row 11 (header):
+┌────────────┬────────┬────────┬────────┬────────┬────────┬────────┐
+│     Kg     │ Zone 1 │ Zone 2 │ Zone 3 │ Zone 4 │ Zone 5 │ Zone 6 │
+└────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+
+Row 12+ (données):
+┌────────────┬────────┬────────┬────────┬────────┬────────┬────────┐
+│ Up to 200  │ 41.07  │ 43.54  │ 47.25  │ 53.83  │ 59.03  │ 65.53  │
+│ 201 - 300  │ 56.51  │ 60.22  │ 65.77  │ 74.01  │ 81.15  │ 89.71  │
+│ 301 - 400  │ 75.35  │ 80.29  │ 87.70  │ 98.68  │108.20  │119.62  │
+│    ...     │  ...   │  ...   │  ...   │  ...   │  ...   │  ...   │
+│2901 - 3000 │459.00  │477.00  │495.00  │530.64  │570.17  │617.60  │
+└────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+```
+
+#### Section 2 : Table zones → plages de codes postaux (rows 42-50)
+
+**Différence clé avec la Croatie/Serbie** : les zones sont définies par des **plages de codes postaux** (et non des codes individuels). La table est répartie sur 4 colonnes :
+
+| Zone | Plages de codes postaux (Excel) |
+|------|------------------------|
+| **Zone 1** | 2600-2799, 4000-4479 |
+| **Zone 2** | 1000-1999, 2800-2999, 3700-3899, 4480-4699 |
+| **Zone 3** | 2500-2599, 3300-3699, 4700-4899 |
+| **Zone 4** | 2000-2499, 3000-3299, 4900-4999 |
+| **Zone 5** | 5000-5299 |
+| **Zone 6** | 5300-5399, 5400-6399 |
+
+**Note** : Les codes postaux portugais sont au format XXXX-XXX (4 chiffres + 3 chiffres). Les plages ci-dessus portent sur les 4 premiers chiffres.
+
+##### Bug actuel : zones non résolues
+
+Actuellement en BD, les quotes Portugal stockent le **nom de zone** (`ZONE_2`, `ZONE_4`, etc.) dans `dest_postal_code` au lieu de vrais codes postaux :
+
+```sql
+SELECT dest_postal_code FROM partner_quotes WHERE dest_country = 'PT';
+-- ZONE_2, ZONE_4, ...  ← incorrect, le matching ne fonctionne pas
+```
+
+##### Solution : conversion plages → préfixes de codes postaux
+
+Pour rester compatible avec le système de **prefix matching** existant (utilisé par Croatie/Serbie), les plages doivent être converties en **préfixes** de codes postaux stockés individuellement dans `dest_postal_code`.
+
+Le principe : le matching utilise `search_cp.startswith(quote_cp)`. Si on stocke `dest_postal_code = "26"`, alors la recherche pour `"2650"` → `"2650".startsWith("26")` → **match**.
+
+**Attention aux plages qui ne s'alignent pas sur des préfixes de 2 chiffres** :
+- `4000-4479` (Zone 1) et `4480-4699` (Zone 2) partagent le préfixe `"44"`
+- Il faut descendre au préfixe de **3 chiffres** : `"440"-"447"` → Zone 1, `"448"-"449"` → Zone 2
+
+Table complète de conversion plages → préfixes :
+
+| Zone | Plage Excel | Préfixes `dest_postal_code` |
+|------|-------------|----------------------------|
+| **Zone 1** | 2600-2799 | `26`, `27` |
+| **Zone 1** | 4000-4479 | `40`, `41`, `42`, `43`, `440`, `441`, `442`, `443`, `444`, `445`, `446`, `447` |
+| **Zone 2** | 1000-1999 | `1` |
+| **Zone 2** | 2800-2999 | `28`, `29` |
+| **Zone 2** | 3700-3899 | `37`, `38` |
+| **Zone 2** | 4480-4699 | `448`, `449`, `45`, `46` |
+| **Zone 3** | 2500-2599 | `25` |
+| **Zone 3** | 3300-3699 | `33`, `34`, `35`, `36` |
+| **Zone 3** | 4700-4899 | `47`, `48` |
+| **Zone 4** | 2000-2499 | `20`, `21`, `22`, `23`, `24` |
+| **Zone 4** | 3000-3299 | `30`, `31`, `32` |
+| **Zone 4** | 4900-4999 | `49` |
+| **Zone 5** | 5000-5299 | `50`, `51`, `52` |
+| **Zone 6** | 5300-5399 | `53` |
+| **Zone 6** | 5400-6399 | `54`, `55`, `56`, `57`, `58`, `59`, `60`, `61`, `62`, `63` |
+
+**Total** : 53 préfixes distincts.
+
+Exemple en BD après correction :
+
+| `weight_min` | `weight_max` | `cost` | `dest_postal_code` | `dest_country` | `pricing_type` |
+|---|---|---|---|---|---|
+| 0 | 200 | 41.07 | 26 | PT | LUMPSUM |
+| 0 | 200 | 41.07 | 27 | PT | LUMPSUM |
+| 0 | 200 | 41.07 | 40 | PT | LUMPSUM |
+| ... | ... | ... | ... | ... | ... |
+| 0 | 200 | 43.54 | 1 | PT | LUMPSUM |
+| 0 | 200 | 43.54 | 28 | PT | LUMPSUM |
+| ... | ... | ... | ... | ... | ... |
+
+Au total : 29 tranches de poids × 53 préfixes = **~1537 lignes** en BD pour le Portugal.
+
+#### Section 3 : Conditions générales et délais (rows 52-66)
+
+| Row | Donnée |
+|-----|--------|
+| 52 | General conditions |
+| 53 | 1 cbm = 300 kg, 1 ldm = 1750 kg |
+| 54 | Handling in Melzo : 1,00 € / 100 kg real weight |
+| 55 | Handling in Portugal : 1,00 € / 100 kg real weight |
+| 56 | Rates in EUR per each shipment |
+| 57-58 | ADR : ≤ 2 LDM → débit sur poids taxable ; > 2 LDM → débit sur LDM |
+| 59 | Fuel surcharge: from 01/12/22 + 8% |
+| 62 | DAILY from Tuesday |
+
+### 6.3 Colonne Kg : tranches de poids explicites
+
+Contrairement à la Croatie (valeurs cumulatives simples) et à la Serbie (notation avec tiret), le Portugal utilise des **plages explicites** (`"201 - 300"`, `"301 - 400"`, etc.). La première tranche est `"Up to 200"`.
+
+Les tranches sont **régulières par paliers de 100 kg** (sauf la première qui couvre 200 kg).
+
+#### Grille complète des tranches
+
+| Valeur Excel | `weight_min` | `weight_max` |
+|---|---|---|
+| `Up to 200` | 0 | 200 |
+| `201 - 300` | 201 | 300 |
+| `301 - 400` | 301 | 400 |
+| `401 - 500` | 401 | 500 |
+| `501 - 600` | 501 | 600 |
+| `601 - 700` | 601 | 700 |
+| `701 - 800` | 701 | 800 |
+| `801 - 900` | 801 | 900 |
+| `901 - 1000` | 901 | 1000 |
+| `1001 - 1100` | 1001 | 1100 |
+| `1101 - 1200` | 1101 | 1200 |
+| `1201 - 1300` | 1201 | 1300 |
+| `1301 - 1400` | 1301 | 1400 |
+| `1401 - 1500` | 1401 | 1500 |
+| `1501 - 1600` | 1501 | 1600 |
+| `1601 - 1700` | 1601 | 1700 |
+| `1701 - 1800` | 1701 | 1800 |
+| `1801 - 1900` | 1801 | 1900 |
+| `1901 - 2000` | 1901 | 2000 |
+| `2001 - 2100` | 2001 | 2100 |
+| `2101 - 2200` | 2101 | 2200 |
+| `2201 - 2300` | 2201 | 2300 |
+| `2301 - 2400` | 2301 | 2400 |
+| `2401 - 2500` | 2401 | 2500 |
+| `2501 - 2600` | 2501 | 2600 |
+| `2601 - 2700` | 2601 | 2700 |
+| `2701 - 2800` | 2701 | 2800 |
+| `2801 - 2900` | 2801 | 2900 |
+| `2901 - 3000` | 2901 | 3000 |
+
+#### Représentation en BD (table `partner_quotes`)
+
+Lors de l'import, chaque zone doit être **éclatée** en plages de codes postaux. Le matching se fait par plage : un code postal de destination est résolu vers sa zone via la table de correspondance.
+
+**Approche recommandée** : Stocker les bornes de plage dans le champ `dest_postal_code` sous forme de préfixe (ex: `"26"`, `"27"`, `"40"`, `"41"`...) ou utiliser un nouveau champ `zone_to_postcode_ranges` dans la config pour résoudre la zone au moment de la recherche.
+
+Au total : 29 tranches de poids × 6 zones = **174 lignes** en BD (avant éclatement des plages en préfixes individuels).
+
+#### Impact sur le code
+
+Deux différences avec la Croatie/Serbie dans le parser `zone_matrix` :
+
+1. **Format de la colonne Kg** : Les valeurs sont des plages explicites (`"201 - 300"`, `"Up to 200"`) au lieu de valeurs cumulatives simples (`100`, `200`) ou avec tiret (`-50`, `-100`). La méthode `_parse_weight_key()` doit parser ces formats via regex : `(\d+)\s*-\s*(\d+)` et `Up to (\d+)`.
+
+2. **Noms de zones** : Les colonnes s'appellent `"Zone 1"` à `"Zone 6"` au lieu de lettres (`A` à `G`). Le reste du mécanisme est identique : les zones sont résolues via `zone_to_postcodes` dans la config YAML (préfixes au lieu de codes complets).
+
+### 6.4 Règles métier spécifiques (rows 52-62)
+
+#### Calcul du poids taxable
+```
+Poids taxable = MAX(poids réel, poids volumétrique)
+
+Équivalences :
+- 1 m³ = 300 kg (différent de Croatie/Serbie : 250 kg)
+- 1 mètre linéaire (ldm) = 1750 kg (différent de Croatie/Serbie : 1500 kg)
+```
+
+#### Surcharges et frais
+
+| Surcharge | Montant | Condition |
+|-----------|---------|-----------|
+| Handling Melzo | 1,00 € / 100 kg | Poids réel |
+| Handling Portugal | 1,00 € / 100 kg | Poids réel |
+| ADR (matières dangereuses) | ≤ 2 LDM : débit sur poids taxable w/v ratio | |
+| ADR (matières dangereuses) | > 2 LDM : débit sur LDM | |
+| Fuel surcharge | +8% | Depuis le 01/12/2022 |
+
+**Comparaison** : Le handling Portugal est de 1,00€/100kg (vs Zagreb 1,50€/100kg pour la Croatie). La règle ADR est plus complexe que le simple +10% de la Croatie.
+
+#### Délais de livraison
+
+| Condition | Délai |
+|-----------|-------|
+| Toutes destinations | Quotidien depuis mardi |
+
+**Différence** : Départ quotidien depuis mardi (vs vendredi uniquement pour Croatie/Serbie).
+
+#### Tarification
+- Prix en EUR **par envoi** (LUMPSUM)
+
+### 6.5 Exemples de tarifs
+
+| Tranche | Zone 1 (Leiria/Porto) | Zone 2 (Lisbonne) | Zone 4 (Setúbal/Coimbra) | Zone 6 (Bragança) |
+|---------|----------------------|-------------------|--------------------------|---------------------|
+| 0-200 kg | 41,07€ | 43,54€ | 53,83€ | 65,53€ |
+| 401-500 kg | 94,18€ | 100,35€ | 123,35€ | 149,52€ |
+| 901-1000 kg | 179,10€ | 191,45€ | 216,81€ | 257,42€ |
+| 1901-2000 kg | 326,38€ | 338,63€ | 377,83€ | 443,58€ |
+| 2901-3000 kg | 459,00€ | 477,00€ | 530,64€ | 617,60€ |
+
+### 6.6 Configuration technique
+
+```yaml
+- name: "portugal"
+  sheet_name: "6.rates PT"
+  header_row: 10
+  layout: "zone_matrix"
+  defaults:
+    transport_mode: "ROAD"
+    origin_country: "IT"
+    origin_city: "MELZO"
+    origin_postal_code: "20066"
+    dest_country: "PT"
+    dest_city: "ALL"
+    currency: "EUR"
+  zone_matrix:
+    weight_column: "Kg"
+    # Clés avec underscore : excel_parser.py normalise "Zone 1" → "zone_1"
+    # puis column_mapper.py fait .upper() → "ZONE_1"
+    # Les clés YAML doivent matcher ce format (underscore, pas espace)
+    zone_to_postcodes:
+      "Zone_1": ["26", "27", "40", "41", "42", "43", "440", "441", "442", "443", "444", "445", "446", "447"]
+      "Zone_2": ["1", "28", "29", "37", "38", "448", "449", "45", "46"]
+      "Zone_3": ["25", "33", "34", "35", "36", "47", "48"]
+      "Zone_4": ["20", "21", "22", "23", "24", "30", "31", "32", "49"]
+      "Zone_5": ["50", "51", "52"]
+      "Zone_6": ["53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63"]
+```
 
 ---
 
