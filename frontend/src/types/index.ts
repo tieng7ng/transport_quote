@@ -27,6 +27,20 @@ export interface PartnerCreate {
     email: string | null;
 }
 
+export interface PriceBreakdown {
+    pricing_type: string;
+    unit_price: number;
+    actual_weight: number;
+    billable_weight: number;
+    base_cost: number;
+    handling_melzo: number;
+    handling_local: number;
+    fuel_surcharge_pct: number;
+    fuel_surcharge_amount: number;
+    total: number;
+    formula: string;
+}
+
 export interface Quote {
     id: string;
     partner_id: string;
@@ -46,6 +60,7 @@ export interface Quote {
     valid_until: string | null;
     created_at: string;
     partner: Partner;
+    price_breakdown?: PriceBreakdown;
 }
 
 export interface Partner {

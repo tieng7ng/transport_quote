@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useCustomerQuote } from '../context/CustomerQuoteContext';
 import { Truck, Calendar, MapPin, Package, Clock, PlusCircle, CheckCircle, Trash2, Search } from 'lucide-react';
+import { PriceBreakdownPanel } from '../components/ui/PriceBreakdown';
 import type { Quote, SearchCriteria } from '../types';
 
 const getCountryName = (code: string) => {
@@ -175,6 +176,9 @@ export const Results: React.FC = () => {
                                     <div className="text-right">
                                         <p className="text-xs text-gray-500 mb-1">Prix estimé</p>
                                         <p className="text-2xl font-bold text-gray-900">{quote.cost} {quote.currency}</p>
+                                        {quote.price_breakdown && (
+                                            <PriceBreakdownPanel breakdown={quote.price_breakdown} currency={quote.currency} />
+                                        )}
                                     </div>
 
                                     {/* Only show actions in Quote Mode */}

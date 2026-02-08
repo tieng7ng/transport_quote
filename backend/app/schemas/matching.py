@@ -5,6 +5,20 @@ from datetime import date
 from app.models.partner_quote import TransportMode
 from app.schemas.partner_quote import PartnerQuoteResponse
 
+
+class PriceBreakdown(BaseModel):
+    pricing_type: str                    # "PER_100KG", "LUMPSUM", "PER_KG"
+    unit_price: float                    # Prix unitaire de base (ex: 17.00 €/100kg)
+    actual_weight: float                 # Poids demandé par l'utilisateur (ex: 250 kg)
+    billable_weight: float               # Poids facturé après arrondi (ex: 300 kg)
+    base_cost: float                     # unit_price × (billable_weight / 100) ou forfait
+    handling_melzo: float = 0.0
+    handling_local: float = 0.0
+    fuel_surcharge_pct: float = 0.0
+    fuel_surcharge_amount: float = 0.0
+    total: float                         # Prix final
+    formula: str                         # Formule lisible : "17.00 × 3 = 51.00 €"
+
 class QuoteSearchRequest(BaseModel):
     origin_country: str = Field(..., description="Code pays ou nom complet")
     origin_postal_code: Optional[str] = Field(default=None, description="Code postal (optionnel si ville renseignée)")
@@ -33,6 +47,8 @@ class QuoteSearchRequest(BaseModel):
         return self
 
 class QuoteMatchResult(PartnerQuoteResponse):
+    price_breakdown: Optional[PriceBreakdown] = None
+
     @field_serializer('cost')
     def serialize_cost(self, cost: Decimal, _info):
         return f"{cost:.2f}"

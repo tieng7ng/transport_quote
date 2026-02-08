@@ -2,7 +2,7 @@ from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, cast, Date, literal
 from app.models.partner_quote import PartnerQuote
-from app.schemas.matching import QuoteSearchRequest
+from app.schemas.matching import QuoteSearchRequest, PriceBreakdown
 
 class MatchingService:
     @staticmethod
@@ -84,27 +84,42 @@ class MatchingService:
                 # Better: Create a copy/dict.
                 
                 # Logic Calcul
-                computed_cost = quote.cost
-                pricing_type = getattr(quote, 'pricing_type', 'PER_100KG') # Default if older migration
-                
+                unit_price = float(quote.cost)
+                pricing_type = getattr(quote, 'pricing_type', 'PER_100KG')
+                actual_weight = criteria.weight
+                billable_weight = actual_weight
+
                 if pricing_type == 'PER_100KG':
-                    # Arrondi à la centaine supérieure
-                    # Ex: 150kg -> 200kg. 200/100 * cost
-                    billable_weight = math.ceil(criteria.weight / 100) * 100
-                    computed_cost = float(quote.cost) * (billable_weight / 100)
+                    billable_weight = math.ceil(actual_weight / 100) * 100
+                    units = int(billable_weight / 100)
+                    base_cost = round(unit_price * units, 2)
+                    formula = f"{unit_price:.2f} × {units} = {base_cost:.2f} €"
                 elif pricing_type == 'PER_KG':
-                    computed_cost = float(quote.cost) * criteria.weight
+                    billable_weight = actual_weight
+                    base_cost = round(unit_price * actual_weight, 2)
+                    formula = f"{unit_price:.2f} × {actual_weight:.0f} = {base_cost:.2f} €"
                 elif pricing_type == 'LUMPSUM':
-                    computed_cost = float(quote.cost)
-                # else (PER_PALLET, etc.) -> Standard cost if no logic implemented yet
-                
-                # We need to return an object that looks like PartnerQuote but with updated cost.
-                # We can just set quote.cost = computed_cost if we are careful not to commit.
-                # Since this is a read-only operation and we don't call db.commit(), strictly speaking it's "safe" 
-                # but good practice is to not mutate DB objects.
-                # Let's rely on the fact we don't commit.
-                # Round to 2 decimals
-                quote.cost = round(computed_cost, 2)
+                    billable_weight = actual_weight
+                    base_cost = round(unit_price, 2)
+                    formula = f"Forfait = {base_cost:.2f} €"
+                else:
+                    base_cost = round(unit_price, 2)
+                    formula = f"{base_cost:.2f} €"
+
+                total = base_cost
+
+                breakdown = PriceBreakdown(
+                    pricing_type=pricing_type,
+                    unit_price=unit_price,
+                    actual_weight=actual_weight,
+                    billable_weight=billable_weight,
+                    base_cost=base_cost,
+                    total=total,
+                    formula=formula,
+                )
+
+                quote.cost = round(total, 2)
+                quote.price_breakdown = breakdown
                 matched_quotes.append(quote)
                 
         return matched_quotes
