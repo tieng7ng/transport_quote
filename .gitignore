@@ -1,3 +1,7 @@
+# Environment (credentials)
+.env
+backend/.env
+
 # OS
 .DS_Store
 

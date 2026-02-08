@@ -799,6 +799,80 @@ class QuoteImportSchema(BaseModel):
 
 ### Tests
 
+---
+
+## 8. Exemples de Calculs Détaillés
+
+Cette section illustre le calcul du prix final (surcharges incluses) pour différents scénarios.
+
+### 8.1 France (Feuille 1 - Nice vers Départements)
+
+**Scénario : Envoi de 250 kg vers Marseille (13)**
+- **Données** : 2 palettes, Poids réel 250 kg, Volume 1.2 m³.
+- **1. Poids Taxable** :
+  - Règle France : **1 m³ = 250 kg**.
+  - Poids volume : $1.2 \times 250 = 300 \text{ kg}$.
+  - Poids retenu : **300 kg** (MAX(250, 300)).
+- **2. Prix de base (PER_100KG)** :
+  - Tranche : 100/300 kg.
+  - Tarif (exemple) : **17,00 €** / 100 kg.
+  - Unités payantes : $300 / 100 = 3$.
+  - Calcul : $17,00 \times 3 = \textbf{51,00 €}$.
+- **3. Surcharges** :
+  - Fuel Surcharge (+8%) : $51,00 \times 0.08 = 4,08 \text{ €}$.
+- **PRIX TOTAL : 55,08 €**
+
+**Scénario : Envoi de 1200 kg vers Var (83)**
+- **Données** : Poids retenu 1200 kg.
+- **1. Prix de base (LUMPSUM)** :
+  - Tranche : 1001/1500 kg.
+  - Type : **Forfait** (LUMPSUM).
+  - Tarif (exemple) : **145,00 €**.
+- **2. Surcharges** :
+  - Fuel Surcharge (+8%) : $145,00 \times 0.08 = 11,60 \text{ €}$.
+- **PRIX TOTAL : 156,60 €**
+
+### 8.2 Italie (Feuille 2 - Melzo vers Provinces)
+
+**Scénario : Envoi de 350 kg vers Roma (00)**
+- **Données** : Poids réel 350 kg, 1 m³.
+- **1. Poids Taxable** :
+  - Règle Italie : **1 m³ = 300 kg** (Différent de la France !).
+  - Poids volume : $1 \times 300 = 300 \text{ kg}$.
+  - Poids retenu : **350 kg** (MAX(350, 300)).
+  - Arrondi (au 100kg sup.) : **400 kg**.
+- **2. Prix de base (PER_100KG)** :
+  - Tranche : Till 500 kgs.
+  - Tarif Roma (exemple) : **14,50 €** / 100 kg.
+  - Calcul : $14,50 \times (400 / 100) = \textbf{58,00 €}$.
+- **3. Surcharges** :
+  - **Handling Melzo** (1,00 € / 100kg) : $1,00 \times (400 / 100) = \textbf{4,00 €}$.
+  - **Fuel Surcharge** (+8% sur Transport + Handling) :
+    - Base : $58,00 + 4,00 = 62,00 \text{ €}$.
+    - Fuel : $62,00 \times 0.08 = 4,96 \text{ €}$.
+- **PRIX TOTAL : 66,96 €**
+
+### 8.3 International (Feuilles 3 à 7 - Melzo vers Europe)
+
+Les règles sont identiques à celles de l'Italie (Ratio 1:300, Handling, Fuel) avec des frais fixes additionnels (Douane, Booking).
+
+**Scénario : Colis de 15 kg vers Belgrade, Serbie (Zone A)**
+- **Données** : Poids réel 15 kg.
+- **1. Prix de base (LUMPSUM)** :
+  - Tranche : 0-20 kg.
+  - Zone : A (Belgrade).
+  - Tarif (exemple) : **32,23 €**.
+- **2. Surcharges** :
+  - **Handling Melzo** (Min 100kg) : $1,00 \times 1 = \textbf{1,00 €}$.
+  - **Booking Fee** : **8,00 €**.
+  - **Dédouanement Export** : **35,00 €**.
+- **3. Fuel Surcharge** (+8% sur Transport + Handling) :
+  - Base : $32,23 + 1,00 = 33,23 \text{ €}$.
+  - Fuel : $33,23 \times 0.08 = 2,66 \text{ €}$.
+- **PRIX TOTAL : 78,89 €**
+  - *(Détail : 32,23 + 1,00 + 8,00 + 35,00 + 2,66)*
+
+
 #### Test d'import complet (multi_sheet)
 
 ```python

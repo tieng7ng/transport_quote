@@ -5,9 +5,9 @@ services:
     image: postgres:16-alpine
     container_name: transport_quote_db
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: transport_quote
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -31,11 +31,13 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgresql://user:password@postgres:5432/transport_quote
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       UPLOAD_DIR: /app/uploads
       PARTNER_CONFIGS_DIR: /app/configs/partners
+      SECRET_KEY: ${SECRET_KEY}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
     volumes:
       - ./backend/uploads:/app/uploads
       - ./backend/configs:/app/configs
@@ -48,10 +50,13 @@ services:
     restart: always
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: https://transportquote.duckdns.org/transport/api/v1
     container_name: transport_quote_frontend
     ports:
-      - "8080:80"
+      - "8081:80"
     depends_on:
       - backend
     networks:

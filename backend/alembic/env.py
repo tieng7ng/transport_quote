@@ -10,12 +10,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.core.database import Base
 from app.models import *  # noqa: Import all models
 
+from app.core.config import get_settings
+
 config = context.config
 
-# Override avec la variable d'environnement si présente
-database_url = os.getenv("DATABASE_URL")
-if database_url:
-    config.set_main_option("sqlalchemy.url", database_url)
+# Override avec la configuration centralisée (qui charge .env)
+settings = get_settings()
+config.set_main_option("sqlalchemy.url", settings.database_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

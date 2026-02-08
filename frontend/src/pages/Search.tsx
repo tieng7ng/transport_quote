@@ -81,10 +81,8 @@ export const Search: React.FC = () => {
             navigate('/results', { state: { results, criteria: formData } });
         } catch (error) {
             console.error("Search failed", error);
-            // Show backend error message if available
-            // @ts-expect-error - jspdf types are loose
-            const msg = error.response?.data?.detail?.[0]?.msg || error.response?.data?.detail || "Erreur lors de la recherche";
-            alert(msg);
+            // Sanitized user-facing message
+            alert("Une erreur est survenue lors de la recherche. Veuillez vérifier les critères.");
         } finally {
             setLoading(false);
         }

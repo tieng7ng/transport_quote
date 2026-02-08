@@ -147,9 +147,8 @@ export const SearchModal: React.FC = () => {
             navigate('/results', { state: { results, criteria: payload } }); // Send updated payload with resolved zips
         } catch (error) {
             console.error("Search failed", error);
-            // @ts-expect-error - loose types
-            const msg = error.response?.data?.detail?.[0]?.msg || error.response?.data?.detail || "Erreur lors de la recherche";
-            alert(msg);
+            // Sanitized error message for user
+            alert("Une erreur est survenue lors de la recherche. Veuillez vérifier les critères et réessayer.");
         } finally {
             setLoading(false);
         }

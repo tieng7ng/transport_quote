@@ -3,7 +3,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 ARG VITE_BASE_PATH=/
-ARG VITE_API_URL=http://localhost:3000/api/v1
+ARG VITE_API_URL=https://transportquote.duckdns.org/transport/api/v1
 ENV VITE_BASE_PATH=$VITE_BASE_PATH
 ENV VITE_API_URL=$VITE_API_URL
 

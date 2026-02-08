@@ -47,7 +47,15 @@ class ImportService:
         
         # 2. Sauvegarder le fichier
         timestamp = int(datetime.utcnow().timestamp())
-        file_ext = os.path.splitext(file.filename)[1]
+        # Sanitize filename (remove path) and validate extension
+        original_fname = os.path.basename(file.filename or "upload")
+        _, file_ext = os.path.splitext(original_fname)
+        file_ext = file_ext.lower()
+        
+        allowed_extensions = [".xlsx", ".xls", ".csv", ".pdf"]
+        if file_ext not in allowed_extensions:
+             raise ValueError(f"Extension {file_ext} not allowed.")
+
         safe_filename = f"{partner_id}_{timestamp}{file_ext}"
         file_path = os.path.join(UPLOAD_DIR, safe_filename)
         

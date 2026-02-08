@@ -22,7 +22,36 @@ def upload_file(
     partner = PartnerService.get_by_id(db, partner_id)
     if not partner:
         raise HTTPException(status_code=404, detail="Partenaire non trouvé")
-        
+
+    # VALIDATION FICHIER
+    # 1. Extension
+    filename = file.filename or ""
+    ext = filename.split(".")[-1].lower()
+    allowed_exts = ["xlsx", "xls", "csv"]
+    if ext not in allowed_exts:
+        raise HTTPException(status_code=400, detail=f"Extension non supportée. Allowed: {allowed_exts}")
+
+    # 2. MIME Type (Basic check)
+    allowed_mimes = [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+        "text/csv",
+        "application/csv"
+    ]
+    if file.content_type not in allowed_mimes and "excel" not in file.content_type and "csv" not in file.content_type:
+         # Fallback loose check because browsers are inconsistent
+         print(f"Warning: Unusual MIME type {file.content_type} for {filename}")
+
+    # 3. Taille (Approximation via content-length header ou seek/tell)
+    # FastAPI SpooledTemporaryFile
+    file.file.seek(0, 2)
+    size = file.file.tell()
+    file.file.seek(0)
+    
+    max_size = 50 * 1024 * 1024 # 50MB from config (hardcoded here for safety or import from settings)
+    if size > max_size:
+        raise HTTPException(status_code=413, detail=f"Fichier trop volumineux. Max {max_size//(1024*1024)}MB")
+
     job = ImportService.create_import_job(db, partner_id, file)
     
     # Lancer le traitement asynchrone (MVP: via BackgroundTasks)
