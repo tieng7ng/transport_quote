@@ -30,7 +30,7 @@ class CustomerQuoteService:
         return f"{prefix}{new_num:04d}"
 
     @staticmethod
-    def create_quote(db: Session, quote_in: CustomerQuoteCreate) -> CustomerQuote:
+    def create_quote(db: Session, quote_in: CustomerQuoteCreate, user_id: str) -> CustomerQuote:
         reference = CustomerQuoteService.generate_reference(db)
         
         db_quote = CustomerQuote(
@@ -41,7 +41,9 @@ class CustomerQuoteService:
             customer_company=quote_in.customer_company,
             valid_until=quote_in.valid_until,
             currency=quote_in.currency,
-            status=CustomerQuoteStatus.DRAFT
+            status=CustomerQuoteStatus.DRAFT,
+            created_by=user_id,
+            updated_by=user_id
         )
         db.add(db_quote)
         db.commit()
@@ -53,8 +55,11 @@ class CustomerQuoteService:
         return db.query(CustomerQuote).filter(CustomerQuote.id == quote_id).first()
     
     @staticmethod
-    def get_quotes(db: Session, skip: int = 0, limit: int = 100) -> List[CustomerQuote]:
-        return db.query(CustomerQuote).order_by(CustomerQuote.created_at.desc()).offset(skip).limit(limit).all()
+    def get_quotes(db: Session, skip: int = 0, limit: int = 100, owner_id: Optional[str] = None) -> List[CustomerQuote]:
+        query = db.query(CustomerQuote)
+        if owner_id:
+            query = query.filter(CustomerQuote.created_by == owner_id)
+        return query.order_by(CustomerQuote.created_at.desc()).offset(skip).limit(limit).all()
 
     @staticmethod
     def add_transport_item(db: Session, quote_id: str, partner_quote_id: str, weight: float) -> CustomerQuoteItem:
@@ -215,7 +220,7 @@ class CustomerQuoteService:
         return True
 
     @staticmethod
-    def update_quote(db: Session, quote_id: str, update_data: CustomerQuoteUpdate) -> Optional[CustomerQuote]:
+    def update_quote(db: Session, quote_id: str, update_data: CustomerQuoteUpdate, user_id: str) -> Optional[CustomerQuote]:
         quote = db.query(CustomerQuote).filter(CustomerQuote.id == quote_id).first()
         if not quote:
             return None
@@ -224,6 +229,8 @@ class CustomerQuoteService:
         for key, value in update_dict.items():
             setattr(quote, key, value)
             
+        quote.updated_by = user_id
+        
         db.commit()
         db.refresh(quote)
         return quote

@@ -9,28 +9,60 @@ import { Results } from './pages/Results';
 import { CustomerQuotes } from './pages/CustomerQuotes';
 import { CustomerQuoteDetail } from './pages/CustomerQuoteDetail';
 import { CustomerQuoteEditor } from './pages/CustomerQuoteEditor';
-
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Users from './pages/Users';
+import Profile from './pages/Profile';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import { AuthProvider } from './context/AuthContext';
 import { CustomerQuoteProvider } from './context/CustomerQuoteContext';
+
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 function App() {
   return (
-    <CustomerQuoteProvider>
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="partners" element={<Partners />} />
-            <Route path="quotes" element={<Quotes />} />
-            <Route path="imports" element={<Imports />} />
-            <Route path="search" element={<Search />} />
-            <Route path="results" element={<Results />} />
-            <Route path="customer-quotes" element={<CustomerQuotes />} />
-            <Route path="customer-quotes/:id" element={<CustomerQuoteDetail />} />
-            <Route path="customer-quotes/:id/edit" element={<CustomerQuoteEditor />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </CustomerQuoteProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <CustomerQuoteProvider>
+          <BrowserRouter basename={import.meta.env.BASE_URL}>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+
+              {/* Protected Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/" element={<Layout />}>
+                  <Route index element={<Dashboard />} />
+
+                  {/* Available to all authenticated users */}
+                  <Route path="search" element={<Search />} />
+                  <Route path="results" element={<Results />} />
+                  <Route path="quotes" element={<Quotes />} />
+                  <Route path="customer-quotes" element={<CustomerQuotes />} />
+                  <Route path="customer-quotes/:id" element={<CustomerQuoteDetail />} />
+                  <Route path="profile" element={<Profile />} />
+
+                  {/* Role based implementation needed in components or here if strict separation */}
+                  <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'COMMERCIAL']} />}>
+                    <Route path="customer-quotes/:id/edit" element={<CustomerQuoteEditor />} />
+                  </Route>
+
+                  <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'OPERATOR']} />}>
+                    <Route path="partners" element={<Partners />} />
+                    <Route path="imports" element={<Imports />} />
+                  </Route>
+
+                  <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']} />}>
+                    <Route path="users" element={<Users />} />
+                  </Route>
+                </Route>
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </CustomerQuoteProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

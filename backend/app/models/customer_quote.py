@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, Enum, ForeignKey, Numeric
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -47,6 +48,14 @@ class CustomerQuote(Base):
     # Relations
     items = relationship("CustomerQuoteItem", back_populates="quote", cascade="all, delete-orphan")
     customer = relationship("Customer")
+
+    # Author Tracking
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    
+    # Relationships with User
+    creator = relationship("User", foreign_keys=[created_by])
+    updater = relationship("User", foreign_keys=[updated_by])
 
 class CustomerQuoteItem(Base):
     __tablename__ = "customer_quote_items"

@@ -1,10 +1,15 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, UploadCloud, Box, FileText, Search, ShoppingCart } from 'lucide-react';
+import { LayoutDashboard, Users, UploadCloud, Box, Search, ShoppingCart, UserCog } from 'lucide-react';
 import { useCustomerQuote } from '../../context/CustomerQuoteContext';
+import RoleGate from '../auth/RoleGate';
+import { useAuth } from '../../context/AuthContext';
 
 export const Sidebar: React.FC = () => {
     const { openSearchForConsultation } = useCustomerQuote();
+    const { user } = useAuth();
+
+    const initials = user ? `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase() : '';
 
     return (
         <div className="flex flex-col w-64 bg-slate-900 border-r border-slate-800 text-white transition-all duration-300">
@@ -23,9 +28,14 @@ export const Sidebar: React.FC = () => {
                 </div>
 
                 <SidebarLink to="/" icon={LayoutDashboard} label="Dashboard" />
-                <SidebarLink to="/partners" icon={Users} label="Partenaires" />
-                <SidebarLink to="/quotes" icon={FileText} label="Tarifs" />
-                <SidebarLink to="/imports" icon={UploadCloud} label="Imports" />
+                <RoleGate allowedRoles={['ADMIN', 'OPERATOR']}>
+                    <SidebarLink to="/partners" icon={Users} label="Partenaires" />
+                    <SidebarLink to="/imports" icon={UploadCloud} label="Imports" />
+                </RoleGate>
+
+                <RoleGate allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
+                    <SidebarLink to="/users" icon={UserCog} label="Utilisateurs" />
+                </RoleGate>
 
                 <div className="px-4 mt-6 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Client
@@ -42,17 +52,19 @@ export const Sidebar: React.FC = () => {
                 <SidebarLink to="/customer-quotes" icon={ShoppingCart} label="Mes Devis" />
             </nav>
 
-            <div className="p-4 border-t border-slate-800">
-                <div className="flex items-center gap-3 px-2">
-                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold">
-                        AD
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-sm font-medium">Admin User</span>
-                        <span className="text-xs text-slate-500">admin@tq.com</span>
+            {user && (
+                <div className="p-4 border-t border-slate-800">
+                    <div className="flex items-center gap-3 px-2">
+                        <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold">
+                            {initials}
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                            <span className="text-sm font-medium truncate">{user.first_name} {user.last_name}</span>
+                            <span className="text-xs text-slate-500 truncate">{user.email}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div >
     );
 };

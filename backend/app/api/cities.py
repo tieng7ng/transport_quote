@@ -2,6 +2,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
+from app.core.deps import get_current_user
+from app.models.user import User
 from app.services.city_service import CityService
 from pydantic import BaseModel
 
@@ -17,7 +19,8 @@ class CitySuggestion(BaseModel):
 def suggest_cities(
     q: str = Query(..., min_length=2, description="Requête de recherche (min 2 caractères)"),
     limit: int = 10,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Suggérer des villes pour l'autocomplétion.
@@ -27,7 +30,10 @@ def suggest_cities(
 
 
 @router.get("/countries")
-def get_countries(db: Session = Depends(get_db)):
+def get_countries(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """
     Retourne les pays distincts disponibles dans les tarifs.
     """

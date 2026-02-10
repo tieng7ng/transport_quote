@@ -1,8 +1,10 @@
 from fastapi import APIRouter
-from app.api import partners, quotes, imports, matching, customers, generated_quotes, cities, customer_quotes
+from app.api import partners, quotes, imports, matching, customers, generated_quotes, cities, customer_quotes, auth, users
 
 api_router = APIRouter()
 
+api_router.include_router(auth.router, prefix="/auth", tags=["Authentification"])
+api_router.include_router(users.router, prefix="/users", tags=["Utilisateurs"])
 api_router.include_router(partners.router, prefix="/partners", tags=["Partenaires"])
 api_router.include_router(quotes.router, prefix="/quotes", tags=["Tarifs"])
 api_router.include_router(imports.router, prefix="/imports", tags=["Imports"])

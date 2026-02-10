@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.core.database import get_db
+from app.core.deps import require_role
+from app.models.user import User
 from app.schemas.import_job import ImportJobResponse
 from app.services.import_service import ImportService
 from app.services.partner_service import PartnerService
@@ -12,10 +14,11 @@ def upload_file(
     background_tasks: BackgroundTasks,
     partner_id: str = Form(...),
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "OPERATOR"))
 ):
     """
-    Uploader un fichier de tarifs pour un partenaire.
+    Uploader un fichier de tarifs pour un partenaire (ADMIN, OPERATOR).
     Crée un Job d'import en statut PENDING.
     """
     # Vérifier que le partenaire existe
@@ -62,9 +65,10 @@ def upload_file(
 @router.get("/{job_id}", response_model=ImportJobResponse)
 def get_import_job(
     job_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "OPERATOR"))
 ):
-    """Récupérer le statut d'un job d'import."""
+    """Récupérer le statut d'un job d'import (ADMIN, OPERATOR)."""
     job = ImportService.get_job(db, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job introuvable")

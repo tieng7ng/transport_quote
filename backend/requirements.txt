@@ -32,3 +32,13 @@ pyyaml==6.0.1
 # Dev & Testing
 pytest==7.4.4
 pytest-asyncio==0.23.4
+
+# Authentication
+PyJWT==2.8.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+# Testing
+httpx==0.26.0
+
+# Security / Rate Limiting
+slowapi==0.1.9
