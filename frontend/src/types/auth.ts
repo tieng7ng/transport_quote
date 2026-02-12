@@ -1,5 +1,6 @@
 export interface User {
     id: string;
+    login: string;
     email: string;
     first_name: string;
     last_name: string;
@@ -15,18 +16,30 @@ export interface TokenResponse {
 }
 
 export interface LoginRequest {
-    username: string;  // OAuth2 expects 'username', which is email in our case
+    username: string;  // OAuth2 expects 'username', which is login now
     password: string;
 }
 
 export interface RegisterRequest {
+    login: string;
     email: string;
     first_name: string;
     last_name: string;
     password?: string; // Optional if generated or set later
 }
 
+export interface UserCreate {
+    login: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    password: string;
+    role: 'SUPER_ADMIN' | 'ADMIN' | 'COMMERCIAL' | 'OPERATOR' | 'VIEWER';
+    is_active?: boolean;
+}
+
 export interface UserUpdate {
+    login?: string;
     first_name?: string;
     last_name?: string;
     email?: string;

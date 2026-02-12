@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import authService from '../services/authService';
-import { Mail } from 'lucide-react';
+import { Mail, User } from 'lucide-react';
 
 const Register = () => {
     const [email, setEmail] = useState('');
+    const [login, setLogin] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [password, setPassword] = useState(''); // Optional: if allowed to set password directly
@@ -21,6 +22,7 @@ const Register = () => {
         setError(null);
         try {
             await authService.register({
+                login,
                 email,
                 first_name: firstName,
                 last_name: lastName,
@@ -90,6 +92,20 @@ const Register = () => {
                                     onChange={(e) => setLastName(e.target.value)}
                                 />
                             </div>
+                        </div>
+                        <div className="relative">
+                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <User className="h-5 w-5 text-gray-400" />
+                            </span>
+                            <input
+                                name="login"
+                                type="text"
+                                required
+                                className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                                placeholder="Identifiant (Login)"
+                                value={login}
+                                onChange={(e) => setLogin(e.target.value)}
+                            />
                         </div>
                         <div className="relative">
                             <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

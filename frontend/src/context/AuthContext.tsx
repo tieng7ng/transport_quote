@@ -9,6 +9,7 @@ interface AuthState {
     isAuthenticated: boolean;
     isLoading: boolean;
     error: string | null;
+    mustChangePassword?: boolean;
 }
 
 interface AuthContextType extends AuthState {
@@ -24,6 +25,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'));
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [mustChangePassword, setMustChangePassword] = useState<boolean>(false);
 
     useEffect(() => {
         const initAuth = async () => {
@@ -35,16 +37,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     const now = Date.now() / 1000;
 
                     if (decoded.exp < now) {
-                        // Token expired, let interceptor handle refresh or logout
-                        // Or proactively try to get user
+                        // Token expired
                     }
 
                     setToken(storedToken);
                     const currentUser = await authService.getCurrentUser();
                     setUser(currentUser);
-                } catch (err) {
+                    if (currentUser.must_change_password) {
+                        setMustChangePassword(true);
+                    }
+                } catch (err: any) {
                     console.error("Auth initialization error", err);
-                    logout();
+
+                    // Check for 403 Password change required
+                    if (err.response?.status === 403 &&
+                        (err.response?.data?.detail === "Password change required" ||
+                            err.response?.headers?.["x-require-password-change"] === "true")) {
+                        setMustChangePassword(true);
+                        // We might want to keep the token so the user can change password
+                        setToken(storedToken);
+                    } else {
+                        logout();
+                    }
                 }
             }
             setIsLoading(false);
@@ -62,8 +76,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             localStorage.setItem('refresh_token', data.refresh_token);
             setToken(data.access_token);
 
-            const currentUser = await authService.getCurrentUser();
-            setUser(currentUser);
+            // After login, we try to get user. If it fails due to password change, we catch it.
+            try {
+                const currentUser = await authService.getCurrentUser();
+                setUser(currentUser);
+                if (currentUser.must_change_password) {
+                    setMustChangePassword(true);
+                }
+            } catch (err: any) {
+                if (err.response?.status === 403 &&
+                    (err.response?.data?.detail === "Password change required" ||
+                        err.response?.headers?.["x-require-password-change"] === "true")) {
+                    setMustChangePassword(true);
+                } else {
+                    throw err;
+                }
+            }
         } catch (err: any) {
             setError(err.response?.data?.detail || 'Login failed');
             throw err;
@@ -82,6 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             localStorage.removeItem('refresh_token');
             setUser(null);
             setToken(null);
+            setMustChangePassword(false);
             window.location.href = '/login';
         }
     };
@@ -96,12 +125,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         <AuthContext.Provider value={{
             user,
             token,
-            isAuthenticated: !!user,
+            isAuthenticated: !!user || mustChangePassword, // Allow partial auth for password change
             isLoading,
             error,
             login,
             logout,
-            hasRole
+            hasRole,
+            mustChangePassword
         }}>
             {children}
         </AuthContext.Provider>

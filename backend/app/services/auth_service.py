@@ -15,23 +15,41 @@ class AuthService:
         return db.query(User).filter(User.email == email).first()
 
     @staticmethod
+    def get_user_by_login(db: Session, login: str):
+        return db.query(User).filter(User.login == login).first()
+
+    @staticmethod
     def create_user(db: Session, user_in: UserCreate):
         # Vérifier si l'email est autorisé
-        domain = user_in.email.split("@")[-1]
-        allowed_domains = [d.strip() for d in settings.allowed_email_domains.split(",")]
-        if domain not in allowed_domains:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Domaine email non autorisé. Domaines permis : {', '.join(allowed_domains)}"
-            )
+        # Vérifier si l'email est autorisé
+        allowed_domains_str = settings.allowed_email_domains.strip()
+        
+        # Si vide ou "*", on autorise tout
+        if not allowed_domains_str or allowed_domains_str == "*":
+            pass 
+        else:
+            domain = user_in.email.split("@")[-1].lower()
+            allowed_domains = [d.strip().lower() for d in allowed_domains_str.split(",")]
+            if domain not in allowed_domains:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Domaine email non autorisé. Domaines permis : {', '.join(allowed_domains)}"
+                )
 
         if AuthService.get_user_by_email(db, user_in.email):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cet email est déjà utilisé."
             )
+            
+        if AuthService.get_user_by_login(db, user_in.login):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ce login est déjà utilisé."
+            )
 
         db_user = User(
+            login=user_in.login,
             email=user_in.email,
             hashed_password=security.hash_password(user_in.password),
             first_name=user_in.first_name,
@@ -47,8 +65,11 @@ class AuthService:
 
     @staticmethod
     def authenticate_user(db: Session, login_data: LoginRequest):
-        user = AuthService.get_user_by_email(db, login_data.email)
+        # Authentification via LOGIN (et non plus email)
+        user = AuthService.get_user_by_login(db, login_data.login)
         if not user:
+            # Timing attack protection
+            security.verify_password("dummy", "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW")
             return None
         if not security.verify_password(login_data.password, user.hashed_password):
             return None

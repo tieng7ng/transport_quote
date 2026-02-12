@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 from functools import lru_cache
@@ -16,7 +17,7 @@ class Settings(BaseSettings):
     # Redis
     redis_host: str = Field("localhost", env="REDIS_HOST")
     redis_port: int = Field(6379, env="REDIS_PORT")
-    redis_password: str | None = Field(None, env="REDIS_PASSWORD")
+    redis_password: Optional[str] = Field(None, env="REDIS_PASSWORD")
 
     # Security
     secret_key: str = Field(..., env="SECRET_KEY")
@@ -29,7 +30,7 @@ class Settings(BaseSettings):
         return v
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
-    allowed_email_domains: str = Field("transport-quote.com", env="ALLOWED_EMAIL_DOMAINS")  # Comma separated in env
+    allowed_email_domains: str = Field("*", env="ALLOWED_EMAIL_DOMAINS")  # Comma separated or * for all
     allowed_origins: str = Field("*", env="ALLOWED_ORIGINS")
 
     @property

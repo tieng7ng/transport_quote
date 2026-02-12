@@ -3,12 +3,13 @@ from app.core import security
 
 def test_login_access_token(client: TestClient, db):
     # 1. Create a user manually in DB
-    from app.models.user import User
+    from app.models.user import User, UserRole
     user = User(
+        login="testuser",
         email="test@example.com",
         hashed_password=security.hash_password("Password123!"),
         is_active=True,
-        role="VIEWER",
+        role=UserRole.VIEWER,
         first_name="Test",
         last_name="User"
     )
@@ -17,7 +18,7 @@ def test_login_access_token(client: TestClient, db):
 
     # 2. Try to login
     login_data = {
-        "username": "test@example.com",
+        "username": "testuser",
         "password": "Password123!"
     }
     r = client.post("/api/v1/auth/login", data=login_data)
@@ -28,12 +29,13 @@ def test_login_access_token(client: TestClient, db):
 
 def test_use_access_token(client: TestClient, db):
     # 1. Create a user
-    from app.models.user import User
+    from app.models.user import User, UserRole
     user = User(
+        login="adminuser",
         email="test2@example.com",
         hashed_password=security.hash_password("Password123!"),
         is_active=True,
-        role="ADMIN",
+        role=UserRole.ADMIN,
         first_name="Admin",
         last_name="User"
     )
@@ -42,7 +44,7 @@ def test_use_access_token(client: TestClient, db):
 
     # 2. Login to get token
     login_data = {
-        "username": "test2@example.com",
+        "username": "adminuser",
         "password": "Password123!"
     }
     r = client.post("/api/v1/auth/login", data=login_data)
@@ -52,16 +54,18 @@ def test_use_access_token(client: TestClient, db):
     headers = {"Authorization": f"Bearer {access_token}"}
     r = client.get("/api/v1/auth/me", headers=headers)
     assert r.status_code == 200
+    assert r.json()["login"] == "adminuser"
     assert r.json()["email"] == "test2@example.com"
 
 def test_refresh_token(client: TestClient, db):
     # 1. Create a user
-    from app.models.user import User
+    from app.models.user import User, UserRole
     user = User(
+        login="refreshuser",
         email="test_refresh@example.com",
         hashed_password=security.hash_password("Password123!"),
         is_active=True,
-        role="VIEWER",
+        role=UserRole.VIEWER,
         first_name="Refresh",
         last_name="User"
     )
@@ -70,7 +74,7 @@ def test_refresh_token(client: TestClient, db):
 
     # 2. Login
     login_data = {
-        "username": "test_refresh@example.com",
+        "username": "refreshuser",
         "password": "Password123!"
     }
     r = client.post("/api/v1/auth/login", data=login_data)

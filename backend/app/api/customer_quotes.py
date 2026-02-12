@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, status
 from sqlalchemy.orm import Session
 from app.core.deps import get_db, get_current_user, require_role
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.customer_quote import (
     CustomerQuoteCreate,
     CustomerQuoteUpdate,
@@ -20,7 +20,7 @@ router = APIRouter()
 def create_quote(
     quote_in: CustomerQuoteCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role("ADMIN", "COMMERCIAL", "OPERATOR"))
 ):
     """Créer un nouveau brouillon de devis."""
     return CustomerQuoteService.create_quote(db, quote_in, current_user.id)
@@ -38,7 +38,8 @@ def read_quotes(
     ADMIN/OPERATOR/SUPER_ADMIN : voient tout.
     """
     owner_id = None
-    if current_user.role == "COMMERCIAL":
+    owner_id = None
+    if current_user.role in ["COMMERCIAL", "OPERATOR"]:
         owner_id = current_user.id
         
     return CustomerQuoteService.get_quotes(db, skip=skip, limit=limit, owner_id=owner_id)
@@ -50,12 +51,17 @@ def read_quote(
     current_user: User = Depends(get_current_user)
 ):
     """Obtenir le détail d'un devis."""
-    quote = CustomerQuoteService.get_quote(db, quote_id)
+    quote = CustomerQuoteService.get_quote(db, str(quote_id))
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
-    
-    # Optional: Check ownership for COMMERCIAL? 
-    # For now, plan says "Tous authentifiés"
+
+    print(f"DEBUG DELETE: role={current_user.role} ({type(current_user.role)}) user={current_user.id} quote_owner={quote.created_by} quote={quote_id}", flush=True)
+
+    # Check ownership for COMMERCIAL
+    # Note: role is an Enum in the model
+    if str(current_user.role) == "COMMERCIAL" or current_user.role == UserRole.COMMERCIAL:
+        if quote.created_by != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to view this quote")
     
     return quote
 
@@ -121,7 +127,7 @@ def remove_item(
     quote_id: str,
     item_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN"))
+    current_user: User = Depends(require_role("ADMIN", "COMMERCIAL"))
 ):
     """Supprimer une ligne."""
     success = CustomerQuoteService.remove_item(db, item_id)
@@ -146,9 +152,18 @@ def update_quote(
 def delete_quote(
     quote_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN"))
+    current_user: User = Depends(require_role("ADMIN", "COMMERCIAL"))
 ):
     """Supprimer un devis."""
+    quote = CustomerQuoteService.get_quote(db, str(quote_id))
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found")
+
+    # Check ownership for COMMERCIAL
+    if current_user.role == UserRole.COMMERCIAL or str(current_user.role) == "COMMERCIAL":
+        if str(quote.created_by) != str(current_user.id):
+             raise HTTPException(status_code=403, detail="Not authorized to delete this quote")
+    
     success = CustomerQuoteService.delete_quote(db, quote_id)
     if not success:
         raise HTTPException(status_code=404, detail="Quote not found")

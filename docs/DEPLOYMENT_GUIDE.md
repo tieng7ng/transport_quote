@@ -177,3 +177,37 @@ Si vous avez installé Nginx sur le serveur hôte (`apt install nginx`).
     ```bash
     docker exec -t transport_quote_db pg_dumpall -c -U admin_prod > dump_$(date +%Y-%m-%d).sql
     ```
+
+---
+
+## 7. Gestion des Utilisateurs et Sécurité (Nouveau)
+
+Suite à la mise à jour du module d'authentification.
+
+### 7.1. Création du Premier Administrateur
+Après le déploiement initial, la base de données est vide. Vous devez créer un utilisateur **SUPER_ADMIN** via la ligne de commande.
+
+**Commande :**
+```bash
+docker-compose exec backend python app/cli/create_admin.py \
+  --login superadmin \
+  --email admin@transport-quote.com \
+  --password "VotreMotDePasseFort123!" \
+  --role SUPER_ADMIN
+```
+
+### 7.2. Politique de Mot de Passe
+Les mots de passe doivent respecter les critères suivants (validé par l'API) :
+*   Minimum **8 caractères**.
+*   Au moins **1 majuscule**.
+*   Au moins **1 minuscule**.
+*   Au moins **1 chiffre**.
+
+### 7.3. Changement de Mot de Passe Obligatoire
+*   Tout utilisateur créé par un administrateur (via l'interface ou CLI) a l'indicateur `must_change_password=True`.
+*   Lors de sa première connexion, cet utilisateur verra une **fenêtre bloquante** lui demandant de définir son propre mot de passe.
+*   Tant que ce changement n'est pas effectué, l'accès aux autres fonctionnalités est bloqué (Erreur 403 sur l'API).
+
+### 7.4. Migrations de Base de Données
+*   Les migrations Alembic sont **automatiques** au démarrage du conteneur `backend` (configuré dans `entrypoint.sh`).
+*   Vous n'avez pas besoin de les lancer manuellement lors d'une mise à jour standard.

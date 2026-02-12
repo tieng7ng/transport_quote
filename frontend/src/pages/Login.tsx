@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, Mail } from 'lucide-react';
+import { Lock, User } from 'lucide-react';
 
 const Login = () => {
-    const [email, setEmail] = useState('');
+    const [loginData, setLoginData] = useState('');
     const [password, setPassword] = useState('');
     const { login, isLoading, error } = useAuth();
     const navigate = useNavigate();
@@ -12,7 +12,7 @@ const Login = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await login({ username: email, password });
+            await login({ username: loginData, password });
             navigate('/');
         } catch (err) {
             console.error('Login failed', err);
@@ -35,18 +35,18 @@ const Login = () => {
                     <div className="rounded-md shadow-sm -space-y-px">
                         <div className="relative">
                             <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Mail className="h-5 w-5 text-gray-400" />
+                                <User className="h-5 w-5 text-gray-400" />
                             </span>
                             <input
-                                id="email-address"
-                                name="email"
-                                type="email"
-                                autoComplete="email"
+                                id="login"
+                                name="login"
+                                type="text"
+                                autoComplete="username"
                                 required
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="Adresse email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Identifiant (Login)"
+                                value={loginData}
+                                onChange={(e) => setLoginData(e.target.value)}
                             />
                         </div>
                         <div className="relative">

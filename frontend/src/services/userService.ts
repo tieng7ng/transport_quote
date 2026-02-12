@@ -12,8 +12,23 @@ export const userService = {
         return response.data;
     },
 
+    create: async (data: any) => {
+        const response = await api.post<User>('/users/', data);
+        return response.data;
+    },
+
     update: async (id: string, data: UserUpdate) => {
         const response = await api.put<User>(`/users/${id}`, data);
+        return response.data;
+    },
+
+    updateStatus: async (id: string, is_active: boolean) => {
+        const response = await api.patch<User>(`/users/${id}/status`, { is_active });
+        return response.data;
+    },
+
+    updateRole: async (id: string, role: string) => {
+        const response = await api.patch<User>(`/users/${id}/role`, { role });
         return response.data;
     },
 

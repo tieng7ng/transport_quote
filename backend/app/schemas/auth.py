@@ -13,7 +13,7 @@ class TokenPayload(BaseModel):
     exp: Optional[int] = None
 
 class LoginRequest(BaseModel):
-    email: str
+    login: str
     password: str
 
 class RefreshRequest(BaseModel):
@@ -24,6 +24,7 @@ class PasswordChangeRequest(BaseModel):
     new_password: str
 
 class UserBase(BaseModel):
+    login: str
     email: EmailStr
     first_name: str
     last_name: str

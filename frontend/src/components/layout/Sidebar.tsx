@@ -33,7 +33,7 @@ export const Sidebar: React.FC = () => {
                     <SidebarLink to="/imports" icon={UploadCloud} label="Imports" />
                 </RoleGate>
 
-                <RoleGate allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
+                <RoleGate allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                     <SidebarLink to="/users" icon={UserCog} label="Utilisateurs" />
                 </RoleGate>
 

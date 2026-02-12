@@ -14,10 +14,18 @@ import Register from './pages/Register';
 import Users from './pages/Users';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { CustomerQuoteProvider } from './context/CustomerQuoteContext';
-
 import ErrorBoundary from './components/common/ErrorBoundary';
+import ChangePasswordModal from './components/auth/ChangePasswordModal';
+
+const PasswordEnforcement = () => {
+  const { user, mustChangePassword } = useAuth();
+  // Show modal if user is logged in AND must change password
+  // OR if we have the mustChangePassword flag set from a failed 403 check
+  const shouldShow = (!!user && user.must_change_password === true) || !!mustChangePassword;
+  return <ChangePasswordModal isOpen={shouldShow} />;
+};
 
 function App() {
   return (
@@ -53,12 +61,13 @@ function App() {
                     <Route path="imports" element={<Imports />} />
                   </Route>
 
-                  <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']} />}>
+                  <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN']} />}>
                     <Route path="users" element={<Users />} />
                   </Route>
                 </Route>
               </Route>
             </Routes>
+            <PasswordEnforcement />
           </BrowserRouter>
         </CustomerQuoteProvider>
       </AuthProvider>

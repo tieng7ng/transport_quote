@@ -31,6 +31,11 @@ const authService = {
         } catch (e) {
             console.error('Logout error', e);
         }
+    },
+
+    changePassword: async (oldPassword: string, newPassword: string): Promise<any> => {
+        const response = await api.post('/auth/change-password', { old_password: oldPassword, new_password: newPassword });
+        return response.data;
     }
 };
 
