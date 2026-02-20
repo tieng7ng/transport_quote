@@ -51,13 +51,16 @@ function App() {
                   <Route path="customer-quotes/:id" element={<CustomerQuoteDetail />} />
                   <Route path="profile" element={<Profile />} />
 
+                  {/* Partners available to all authenticated */}
+                  <Route path="partners" element={<Partners />} />
+
                   {/* Role based implementation needed in components or here if strict separation */}
-                  <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'COMMERCIAL']} />}>
+                  <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'COMMERCIAL', 'OPERATOR']} />}>
                     <Route path="customer-quotes/:id/edit" element={<CustomerQuoteEditor />} />
                   </Route>
 
-                  <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'OPERATOR']} />}>
-                    <Route path="partners" element={<Partners />} />
+                  {/* Imports restricted to SUPER_ADMIN */}
+                  <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']} />}>
                     <Route path="imports" element={<Imports />} />
                   </Route>
 

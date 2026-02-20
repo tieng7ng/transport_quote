@@ -26,10 +26,10 @@
 
 ### CRITIQUE
 
-- [ ] **1. Aucune authentification sur l'API transport_quote**
+- [x] **1. Aucune authentification sur l'API transport_quote**
   - Fichiers : `backend/app/api/*.py`
   - Tous les endpoints (devis, partenaires, imports, uploads) sont accessibles sans login
-  - Action : implementer JWT ou OAuth2 sur tous les endpoints
+  - Action : implementer JWT ou OAuth2 sur tous les endpoints (FAIT)
 
 - [ ] **2. Secrets en clair dans le repo Git**
   - Fichier : `.env` (racine du projet)
@@ -61,9 +61,9 @@
   - 32 775 tentatives de brute-force SSH non bloquees
   - Action : `sudo apt install fail2ban && sudo systemctl enable fail2ban`
 
-- [ ] **8. Pas de rate limiting sur les API**
+- [x] **8. Pas de rate limiting sur les API**
   - Aucune limitation de requetes sur aucun endpoint
-  - Action : ajouter un middleware de rate limiting (slowapi ou similaire)
+  - Action : ajouter un middleware de rate limiting (slowapi ou similaire) (PARTIEL : Login protégé)
 
 - [ ] **9. Headers de securite manquants (Nginx staging)**
   - Fichier : `frontend/nginx.staging.conf`

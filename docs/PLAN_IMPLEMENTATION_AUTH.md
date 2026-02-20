@@ -1,59 +1,66 @@
-# Plan de Finalisation — Module Authentification
+# Plan d'Implémentation - Évolutions Authentification (Matrice 1.2 & Correctifs)
 
-> **Date** : 11 Février 2026
-> **Statut** : ~95% implémenté. Ce plan remplace l'ancien qui couvrait 8 sprints désormais réalisés.
+> **Source** : Basé sur la section 17 de `PROPOSITIONS_MODULE_AUTHENTIFICATION.md`.
+> **Objectif** : Aligner strictement les rôles sur la Matrice 1.2 et corriger les bugs techniques.
 
----
+## 1. Priorité 1 : Alignement des Rôles (Backend & Frontend)
 
-## 1. Contexte et État des Lieux
+L'objectif est de restreindre ou d'ouvrir les accès conformément à la matrice de sécurité validée.
 
-L'implémentation du module d'authentification a considérablement avancé. Les fonctionnalités suivantes sont **DÉJÀ IMPLÉMENTÉES** :
+### 1.1 Backend : Restrictions API (`require_role`)
 
--   **Backend** : Auth (`login`, `register`, `logout`), Gestion utilisateurs (`CRUD`), Protection des routes (`customer-quotes`, `users`, `match`), Enum `UserRole`.
--   **Frontend** : Pages Login/Register (avec champ `login`), Gestion des utilisateurs (`Users.tsx`), Profil (`Profile.tsx`), Protection des routes (`RoleGate`).
--   **Sécurité** : Fix du `/logout`, validation token, protection contre l'escalade de privilèges.
+#### [MODIFY] `backend/app/api/partners.py`
+- [x] **POST /** et **PUT /{id}** : Restreindre à `SUPER_ADMIN` uniquement (Retirer `ADMIN`, `OPERATOR`).
+- [x] **DELETE /{id}** : Restreindre à `SUPER_ADMIN` uniquement (Retirer `ADMIN`).
+- [x] **DELETE /{id}/quotes** : Restreindre à `SUPER_ADMIN` uniquement (Retirer `ADMIN`).
 
----
+#### [MODIFY] `backend/app/api/imports.py`
+- [x] **POST /** et **GET /{id}** : Restreindre à `SUPER_ADMIN` uniquement (Retirer `ADMIN`, `OPERATOR`).
 
-## 2. Reste à Faire : Sprint de Finalisation
+#### [MODIFY] `backend/app/api/quotes.py`
+- [x] **DELETE /** : Restreindre à `SUPER_ADMIN` uniquement (Retirer `ADMIN`, `OPERATOR`).
+- [x] **POST /** : Admin/Operator (Status Quo).
 
-### Priorité 1 : Validation & Recette (Validation Fonctionnelle)
+#### [MODIFY] `backend/app/api/customer_quotes.py`
+- [x] **DELETE /{id}/items** : Ajouter `COMMERCIAL` aux rôles autorisés (Actuellement `ADMIN` uniquement).
 
-L'objectif est de vérifier que le code implémenté se comporte comme attendu dans des scénarios réels.
+### 1.2 Frontend : Routing et Navigation
 
-- [ ] **Flux Nouvel Utilisateur**
-    - Créer un compte employé via `/register`.
-    - Vérifier qu'il est créé en statut "Inactif" et rôle "VIEWER" (ou standard).
-    - Activer le compte via l'interface Admin.
-    - Se connecter avec le nouveau compte.
-    - Vérifier que le changement de mot de passe est forcé à la première connexion.
+#### [MODIFY] `frontend/src/App.tsx`
+- [x] **Route `/partners`** : Ouvrir à tous les utilisateurs authentifiés (Retirer restriction `ADMIN`, `OPERATOR`).
+- [x] **Route `/imports`** : Restreindre à `SUPER_ADMIN` uniquement.
+- [x] **Route `/customer-quotes/:id/edit`** : Ajouter `OPERATOR` aux rôles autorisés.
 
-- [ ] **Permissions et Cloisonnement des Données**
-    - **COMMERCIAL** : Vérifier qu'il ne voit QUE les devis qu'il a créés (`/customer-quotes`).
-    - **OPERATOR** : Vérifier qu'il voit tous les devis mais ne peut pas supprimer ceux des autres.
-    - **ADMIN** : Vérifier qu'il peut tout gérer mais NE PEUT PAS se donner le rôle `SUPER_ADMIN` ni rétrograder un `SUPER_ADMIN`.
+#### [MODIFY] `frontend/src/components/layout/Sidebar.tsx`
+- [x] **Menu Partenaires** : Sortir du `RoleGate` (visible pour tous).
+- [x] **Menu Imports** : Mettre dans un `RoleGate` exclusif `SUPER_ADMIN`.
 
-- [ ] **Changement de Mot de Passe**
-    - Tester le changement de mot de passe via la page Profil.
-    - Vérifier que l'ancien mot de passe n'est plus valide.
+## 2. Priorité 2 : Améliorations Techniques & Bugs
 
-### Priorité 2 : Améliorations Techniques (Sprints 8 & Qualité)
+### 2.1 Backend
 
-Ces tâches techniques sont nécessaires pour la robustesse en production.
+#### [MODIFY] `backend/app/api/users.py`
+- [x] **Nettoyage** : Supprimer les imports dupliqués et la double déclaration de `router`.
+- [x] **Sécurité** : Lors du `PATCH /status` (désactivation), invalider les tokens via Redis.
 
-- [ ] **Mutex pour le Refresh Token** (Frontend)
-    -   *Problème* : Si plusieurs requêtes échouent (401) en même temps, le frontend lance plusieurs appels `/refresh` parallèles.
-    -   *Solution* : Implémenter un système de file d'attente (mutex) dans `api.ts` pour ne faire qu'un seul refresh.
+#### [MODIFY] `backend/app/core/security.py` & `auth_service.py`
+- [x] **Datetime** : Remplacer `datetime.utcnow()` (déprécié) par `datetime.now(timezone.utc)`.
 
-- [ ] **Rate Limiting sur Login** (Backend)
-    -   *Objectif* : Protéger contre le brute-force.
-    -   *Moyen* : Utiliser Redis pour limiter à 5 tentatives échouées par 15 minutes par IP/Login.
+### 2.2 Frontend
 
-- [ ] **Audit Logs** (Backend)
-    -   *Objectif* : Traçabilité des actions sensibles.
-    -   *Actions à logger* : `USER_CREATE`, `USER_DELETE`, `QUOTE_DELETE`, `ROLE_CHANGE`.
+#### [MODIFY] `frontend/src/services/api.ts`
+- [x] **Mutex Refresh** : Implémenter un système de verrou pour éviter les appels multiples à `/refresh` lors de 401 simultanés.
 
-### Priorité 3 : Nettoyage de Code
+## 3. Plan de Vérification
 
-- [ ] **Vérification des Imports** : S'assurer qu'il n'y a plus d'imports dupliqués (comme celui corrigé dans `App.tsx`).
-- [ ] **Suppression de Code Mort** : Nettoyer les anciennes routes ou fonctions non utilisées si identifiées.
+### 3.1 Script de Vérification Automatisé (`verify_role_alignment.py`)
+Un nouveau script Python sera créé pour tester spécifiquement les restrictions modifiées :
+1.  Vérifier qu'un `ADMIN` obtient **403 Forbidden** sur `DELETE /partners/{id}`.
+2.  Vérifier qu'un `ADMIN` obtient **403 Forbidden** sur `POST /imports`.
+3.  Vérifier qu'un `COMMERCIAL` obtient **200 OK** sur `DELETE /customer-quotes/{id}/items`.
+4.  Vérifier qu'un `VIEWER` obtient **200 OK** sur `GET /partners`.
+
+### 3.2 Vérification Manuelle Frontend
+1.  Se connecter en `VIEWER` : Vérifier accès à la page Partenaires (Lecture seule).
+2.  Se connecter en `ADMIN` : Vérifier *absence* du menu Imports.
+3.  Se connecter en `SUPER_ADMIN` : Vérifier présence du menu Imports et accès complet.

@@ -130,6 +130,14 @@ def remove_item(
     current_user: User = Depends(require_role("ADMIN", "COMMERCIAL"))
 ):
     """Supprimer une ligne."""
+    # Check ownership for COMMERCIAL
+    if current_user.role == UserRole.COMMERCIAL or str(current_user.role) == "COMMERCIAL":
+         quote = CustomerQuoteService.get_quote(db, str(quote_id))
+         if not quote:
+             raise HTTPException(status_code=404, detail="Quote not found")
+         if str(quote.created_by) != str(current_user.id):
+             raise HTTPException(status_code=403, detail="Not authorized to delete this item")
+
     success = CustomerQuoteService.remove_item(db, item_id)
     if not success:
         raise HTTPException(status_code=404, detail="Item not found")

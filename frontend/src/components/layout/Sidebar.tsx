@@ -28,8 +28,9 @@ export const Sidebar: React.FC = () => {
                 </div>
 
                 <SidebarLink to="/" icon={LayoutDashboard} label="Dashboard" />
-                <RoleGate allowedRoles={['ADMIN', 'OPERATOR']}>
-                    <SidebarLink to="/partners" icon={Users} label="Partenaires" />
+                <SidebarLink to="/partners" icon={Users} label="Partenaires" />
+
+                <RoleGate allowedRoles={[]}>
                     <SidebarLink to="/imports" icon={UploadCloud} label="Imports" />
                 </RoleGate>
 

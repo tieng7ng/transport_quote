@@ -9,16 +9,16 @@
 
 ## Statut d'implémentation
 
-| Module | Statut | Description |
-|--------|--------|-------------|
-| Gestion Partenaires | ✅ Complet | CRUD + Suppression tarifs |
-| Import Tarifs | ✅ Complet | CSV, Excel, PDF + Validation |
-| Recherche (Matching) | ✅ Complet | Filtrage + Autocomplétion villes |
-| Validation flexible | ✅ Complet | Code postal OU ville |
-| Tri résultats | ⏳ En cours | Prix, Délai |
-| **Devis Clients (Panier)** | ✅ Complet | Liste, Détail, Édition, Sidebar |
-| Génération PDF | ❌ Non démarré | Export PDF du devis |
-| Envoi Email | ❌ Non démarré | Envoi devis au client |
+| Module                     | Statut        | Description                      |
+| -------------------------- | ------------- | -------------------------------- |
+| Gestion Partenaires        | ✅ Complet     | CRUD + Suppression tarifs        |
+| Import Tarifs              | ✅ Complet     | CSV, Excel, PDF + Validation     |
+| Recherche (Matching)       | ✅ Complet     | Filtrage + Autocomplétion villes |
+| Validation flexible        | ✅ Complet     | Code postal OU ville             |
+| Tri résultats              | ⏳ En cours    | Prix, Délai                      |
+| **Devis Clients (Panier)** | ✅ Complet     | Liste, Détail, Édition, Sidebar  |
+| Génération PDF             | ❌ Non démarré | Export PDF du devis              |
+| Envoi Email                | ❌ Non démarré | Envoi devis au client            |
 
 ---
 
@@ -48,10 +48,10 @@ Application permettant de :
 
 ### 1.2 Acteurs
 
-| Acteur | Rôle |
-|--------|------|
+| Acteur             | Rôle                                        |
+| ------------------ | ------------------------------------------- |
 | **Administrateur** | Importe les fichiers tarifs des partenaires |
-| **Client** | Recherche des offres et reçoit des devis |
+| **Client**         | Recherche des offres et reçoit des devis    |
 
 ### 1.3 Flux simplifié
 
@@ -119,14 +119,14 @@ Application permettant de :
 
 ### 2.2 Composants
 
-| Composant | Description |
-|-----------|-------------|
-| **Interface Admin** | Upload fichiers, visualisation imports, gestion partenaires |
-| **API REST** | Endpoints pour recherche et génération de devis |
-| **Module Import** | Parsing des fichiers CSV, Excel, PDF |
-| **Module Matching** | Recherche et classement des offres |
-| **Module Generator** | Génération PDF et envoi email |
-| **PostgreSQL** | Stockage des tarifs et devis |
+| Composant            | Description                                                 |
+| -------------------- | ----------------------------------------------------------- |
+| **Interface Admin**  | Upload fichiers, visualisation imports, gestion partenaires |
+| **API REST**         | Endpoints pour recherche et génération de devis             |
+| **Module Import**    | Parsing des fichiers CSV, Excel, PDF                        |
+| **Module Matching**  | Recherche et classement des offres                          |
+| **Module Generator** | Génération PDF et envoi email                               |
+| **PostgreSQL**       | Stockage des tarifs et devis                                |
 
 ---
 
@@ -139,12 +139,12 @@ Gérer le référentiel des transporteurs et leurs configurations.
 
 #### Fonctionnalités
 
-| ID | Fonctionnalité | Description |
-|----|----------------|-------------|
+| ID   | Fonctionnalité      | Description                                  |
+| ---- | ------------------- | -------------------------------------------- |
 | F1.1 | Création Partenaire | Ajout d'un transporteur (Nom, Code, Contact) |
-| F1.2 | Configuration | Définition des règles d'import (Yaml) |
-| F1.3 | Activation | Activer/Désactiver un partenaire globalement |
-| F1.4 | Suppression Tarifs | Supprimer tous les tarifs d'un partenaire |
+| F1.2 | Configuration       | Définition des règles d'import (Yaml)        |
+| F1.3 | Activation          | Activer/Désactiver un partenaire globalement |
+| F1.4 | Suppression Tarifs  | Supprimer tous les tarifs d'un partenaire    |
 
 ### 3.2 Module 2 : Import des tarifs
 
@@ -153,22 +153,22 @@ Importer les fichiers tarifs des partenaires et les stocker en base.
 
 #### Formats supportés
 
-| Format | Parsing | Fiabilité |
-|--------|---------|-----------|
-| **CSV** | pandas | 100% |
-| **Excel** (.xlsx, .xls) | pandas + openpyxl | 100% |
-| **PDF** (texte) | pdfplumber | 80% |
-| **PDF** (complexe) | IA Claude | 95% |
+| Format                  | Parsing           | Fiabilité |
+| ----------------------- | ----------------- | --------- |
+| **CSV**                 | pandas            | 100%      |
+| **Excel** (.xlsx, .xls) | pandas + openpyxl | 100%      |
+| **PDF** (texte)         | pdfplumber        | 80%       |
+| **PDF** (complexe)      | IA Claude         | 95%       |
 
 #### Fonctionnalités
 
-| ID | Fonctionnalité | Description |
-|----|----------------|-------------|
-| F1.1 | Upload fichier | Réception CSV, Excel ou PDF |
-| F1.2 | Détection format | Auto-détection du type de fichier |
+| ID   | Fonctionnalité   | Description                             |
+| ---- | ---------------- | --------------------------------------- |
+| F1.1 | Upload fichier   | Réception CSV, Excel ou PDF             |
+| F1.2 | Détection format | Auto-détection du type de fichier       |
 | F1.3 | Mapping colonnes | Correspondance automatique des colonnes |
-| F1.4 | Validation | Vérification des données obligatoires |
-| F1.5 | Rapport d'import | Liste des succès et erreurs |
+| F1.4 | Validation       | Vérification des données obligatoires   |
+| F1.5 | Rapport d'import | Liste des succès et erreurs             |
 
 #### Flux d'import
 
@@ -192,13 +192,13 @@ Trouver les meilleures offres pour un trajet donné.
 
 #### Fonctionnalités
 
-| ID | Fonctionnalité | Description | Statut |
-|----|----------------|-------------|--------|
-| F3.1 | Recherche | Filtrer par origine, destination, poids | ✅ |
-| F3.2 | Tri | Par prix, délai ou score combiné | ⏳ |
-| F3.3 | Limite | Retourner les N meilleures offres | ✅ |
-| F3.4 | Autocomplétion villes | Suggestions de villes basées sur les tarifs existants | ✅ |
-| F3.5 | Validation flexible | Code postal OU ville requis (pas les deux obligatoires) | ✅ |
+| ID   | Fonctionnalité        | Description                                             | Statut |
+| ---- | --------------------- | ------------------------------------------------------- | ------ |
+| F3.1 | Recherche             | Filtrer par origine, destination, poids                 | ✅      |
+| F3.2 | Tri                   | Par prix, délai ou score combiné                        | ⏳      |
+| F3.3 | Limite                | Retourner les N meilleures offres                       | ✅      |
+| F3.4 | Autocomplétion villes | Suggestions de villes basées sur les tarifs existants   | ✅      |
+| F3.5 | Validation flexible   | Code postal OU ville requis (pas les deux obligatoires) | ✅      |
 
 #### Autocomplétion des villes (F3.4) ✅ Implémenté
 
@@ -227,13 +227,35 @@ Créer et envoyer des devis PDF aux clients.
 
 #### Fonctionnalités
 
-| ID | Fonctionnalité | Description |
-|----|----------------|-------------|
-| F4.1 | Édition Prix | Ajustement marge et prix de vente (Flexible) |
-| F4.2 | Frais annexes | Ajout de lignes manuelles (Assurance, Dossier) |
+| ID   | Fonctionnalité | Description                                       |
+| ---- | -------------- | ------------------------------------------------- |
+| F4.1 | Édition Prix   | Ajustement marge et prix de vente (Flexible)      |
+| F4.2 | Frais annexes  | Ajout de lignes manuelles (Assurance, Dossier)    |
 | F4.3 | Génération PDF | Créer un devis formaté (Prix de vente uniquement) |
-| F4.4 | Envoi email | Transmettre au client |
-| F4.5 | Archivage | Stocker le devis |
+| F4.4 | Envoi email    | Transmettre au client                             |
+| F4.5 | Archivage      | Stocker le devis                                  |
+
+### 3.5 Module 5 : Authentification et Rôles ✅ Implémenté
+
+#### Objectif
+Sécuriser l'accès à l'application et restreindre les fonctionnalités selon le profil de l'utilisateur.
+
+#### Rôles définis (Matrice 1.2)
+| Rôle            | Description              | Droits Principaux                                                               |
+| --------------- | ------------------------ | ------------------------------------------------------------------------------- |
+| **SUPER_ADMIN** | Administrateur Technique | Accès total, y compris suppression de données sensibles (Partenaires, Imports). |
+| **ADMIN**       | Gestionnaire             | Gestion des utilisateurs, création de partenaires, accès à tous les devis.      |
+| **COMMERCIAL**  | Vendeur                  | Création de devis, gestion de *ses* propres dossiers uniquement.                |
+| **OPERATOR**    | Opérateur Saisie         | Création et modification de devis (sans suppression).                           |
+| **VIEWER**      | Auditeur                 | Lecture seule sur l'ensemble des données.                                       |
+
+#### Fonctionnalités
+| ID   | Fonctionnalité     | Description                                                 |
+| ---- | ------------------ | ----------------------------------------------------------- |
+| F5.1 | Connexion (Login)  | Authentification par Email/Mot de passe (JWT).              |
+| F5.2 | Protection Routes  | Restriction des pages et API selon le rôle.                 |
+| F5.3 | Gestion Profil     | Modification mot de passe et informations personnelles.     |
+| F5.4 | Admin Utilisateurs | Création, modification, désactivation des comptes (Admin+). |
 
 ---
 
@@ -304,13 +326,13 @@ L'autocomplétion permet à l'utilisateur de rechercher rapidement une ville par
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-| Touche | Action |
-|--------|--------|
-| `↓` (ArrowDown) | Sélectionne l'élément suivant |
-| `↑` (ArrowUp) | Sélectionne l'élément précédent |
-| `Enter` | Valide la sélection et ferme le dropdown |
-| `Tab` | Valide la sélection et passe au champ suivant |
-| `Escape` | Ferme le dropdown sans sélectionner |
+| Touche          | Action                                        |
+| --------------- | --------------------------------------------- |
+| `↓` (ArrowDown) | Sélectionne l'élément suivant                 |
+| `↑` (ArrowUp)   | Sélectionne l'élément précédent               |
+| `Enter`         | Valide la sélection et ferme le dropdown      |
+| `Tab`           | Valide la sélection et passe au champ suivant |
+| `Escape`        | Ferme le dropdown sans sélectionner           |
 
 #### Sélection & Devis
 *   **Résultats de recherche** : Liste des offres correspondantes (triées par prix).
@@ -361,31 +383,31 @@ Cette section décrit le workflow "Panier" permettant de construire un devis pro
 ```
 
 **Colonnes du tableau :**
-| Colonne | Source | Description |
-|---------|--------|-------------|
-| Référence | `quote.reference` | DEV-YYYY-XXXX ou "Brouillon" |
-| Client | `quote.customer_name` + `quote.customer_company` | Nom et société |
-| Date | `quote.created_at` | Date de création |
-| Montant HT | `quote.total` | Total en euros |
-| Statut | `quote.status` | Badge coloré |
-| Actions | - | Icônes d'action |
+| Colonne    | Source                                           | Description                  |
+| ---------- | ------------------------------------------------ | ---------------------------- |
+| Référence  | `quote.reference`                                | DEV-YYYY-XXXX ou "Brouillon" |
+| Client     | `quote.customer_name` + `quote.customer_company` | Nom et société               |
+| Date       | `quote.created_at`                               | Date de création             |
+| Montant HT | `quote.total`                                    | Total en euros               |
+| Statut     | `quote.status`                                   | Badge coloré                 |
+| Actions    | -                                                | Icônes d'action              |
 
 **Statuts et couleurs :**
-| Statut | Couleur | Description |
-|--------|---------|-------------|
-| `DRAFT` | Gris | Brouillon en cours |
-| `READY` | Bleu | Prêt à envoyer |
-| `SENT` | Jaune | Envoyé au client |
-| `ACCEPTED` | Vert | Accepté |
-| `REJECTED` | Rouge | Refusé |
+| Statut     | Couleur | Description        |
+| ---------- | ------- | ------------------ |
+| `DRAFT`    | Gris    | Brouillon en cours |
+| `READY`    | Bleu    | Prêt à envoyer     |
+| `SENT`     | Jaune   | Envoyé au client   |
+| `ACCEPTED` | Vert    | Accepté            |
+| `REJECTED` | Rouge   | Refusé             |
 
 **Actions disponibles :**
-| Action | Icône | Condition | Description |
-|--------|-------|-----------|-------------|
-| `+ Nouveau Devis` | - | Toujours | Crée un devis et redirige vers l'éditeur |
-| Voir le devis | 👁 | Toujours | Navigue vers `/customer-quotes/{id}` |
-| Supprimer | 🗑 | Statut = `DRAFT` | Supprime le devis brouillon |
-| Recherche | 🔍 | Toujours | Filtre par référence ou client (placeholder) |
+| Action            | Icône | Condition        | Description                                  |
+| ----------------- | ----- | ---------------- | -------------------------------------------- |
+| `+ Nouveau Devis` | -     | Toujours         | Crée un devis et redirige vers l'éditeur     |
+| Voir le devis     | 👁     | Toujours         | Navigue vers `/customer-quotes/{id}`         |
+| Supprimer         | 🗑     | Statut = `DRAFT` | Supprime le devis brouillon                  |
+| Recherche         | 🔍     | Toujours         | Filtre par référence ou client (placeholder) |
 
 #### 4.3.2 Affichage d'un Devis (`CustomerQuoteDetail.tsx`)
 
@@ -437,26 +459,26 @@ Cette section décrit le workflow "Panier" permettant de construire un devis pro
 **Layout :** Grille 3 colonnes (2/3 contenu principal + 1/3 sidebar)
 
 **Zone principale - Détail des prestations :**
-| Élément | Description |
-|---------|-------------|
-| Badge type | `TRANSPORT` (bleu) ou `FRAIS` (orange) |
-| Description | `item.description` |
+| Élément           | Description                                           |
+| ----------------- | ----------------------------------------------------- |
+| Badge type        | `TRANSPORT` (bleu) ou `FRAIS` (orange)                |
+| Description       | `item.description`                                    |
 | Détails transport | Mode, partenaire, origine → destination, poids, délai |
-| Prix vente | `item.sell_price` |
-| Marge | Pourcentage et montant |
+| Prix vente        | `item.sell_price`                                     |
+| Marge             | Pourcentage et montant                                |
 
 **Sidebar - Informations :**
-| Section | Contenu |
-|---------|---------|
-| Client | Avatar, nom, société, email, validité |
+| Section       | Contenu                                              |
+| ------------- | ---------------------------------------------------- |
+| Client        | Avatar, nom, société, email, validité                |
 | Récapitulatif | Total transport, total frais, total HT, marge totale |
 
 **Actions disponibles :**
-| Bouton | Action |
-|--------|--------|
-| Imprimer | Placeholder (non implémenté) |
-| Envoyer | Placeholder (non implémenté) |
-| Éditer | Navigation vers `/customer-quotes/{id}/edit` |
+| Bouton   | Action                                       |
+| -------- | -------------------------------------------- |
+| Imprimer | Placeholder (non implémenté)                 |
+| Envoyer  | Placeholder (non implémenté)                 |
+| Éditer   | Navigation vers `/customer-quotes/{id}/edit` |
 
 #### 4.3.3 Édition d'un Devis (`CustomerQuoteEditor.tsx`)
 
@@ -557,30 +579,30 @@ Modal Édition Client :
 ```
 
 **Barre supérieure :**
-| Élément | Description |
-|---------|-------------|
-| Retour | Lien vers `/customer-quotes/{id}` |
-| Titre | "Éditeur de Devis \| {reference}" |
-| Sous-titre | Client et statut |
-| Marge Totale | Affichage en temps réel |
-| Total HT | Affichage en temps réel |
-| Enregistrer | Bouton de sauvegarde |
+| Élément      | Description                       |
+| ------------ | --------------------------------- |
+| Retour       | Lien vers `/customer-quotes/{id}` |
+| Titre        | "Éditeur de Devis \| {reference}" |
+| Sous-titre   | Client et statut                  |
+| Marge Totale | Affichage en temps réel           |
+| Total HT     | Affichage en temps réel           |
+| Enregistrer  | Bouton de sauvegarde              |
 
 **Section Client :**
-| Champ | Éditable | Description |
-|-------|----------|-------------|
-| Nom | **Oui** | `customer_name` - Nom du contact |
-| Société | **Oui** | `customer_company` - Raison sociale |
-| Email | **Oui** | `customer_email` - Email de contact |
-| Validité | **Oui** | `valid_until` - Date de validité du devis |
+| Champ    | Éditable | Description                               |
+| -------- | -------- | ----------------------------------------- |
+| Nom      | **Oui**  | `customer_name` - Nom du contact          |
+| Société  | **Oui**  | `customer_company` - Raison sociale       |
+| Email    | **Oui**  | `customer_email` - Email de contact       |
+| Validité | **Oui**  | `valid_until` - Date de validité du devis |
 
 **Sélecteur Mode de Transport :**
-| Mode | Icône | Valeur |
-|------|-------|--------|
-| Route | 🚚 | `ROAD` |
-| Rail | 🚂 | `RAIL` |
-| Aérien | ✈️ | `AIR` |
-| Maritime | 🚢 | `SEA` |
+| Mode     | Icône | Valeur |
+| -------- | ----- | ------ |
+| Route    | 🚚     | `ROAD` |
+| Rail     | 🚂     | `RAIL` |
+| Aérien   | ✈️     | `AIR`  |
+| Maritime | 🚢     | `SEA`  |
 
 Le mode sélectionné est passé à la modal de recherche lors de l'ajout d'un transport.
 
@@ -590,22 +612,22 @@ Le mode sélectionné est passé à la modal de recherche lors de l'ajout d'un t
 - Le mode n'est plus modifiable dans la modal
 
 **Section Transport (`QuoteItemEditor`) :**
-| Champ | Éditable | Description |
-|-------|----------|-------------|
-| Description | Non | Trajet (origine → destination) |
-| Détails | Non | Partenaire, mode, délai, poids |
-| Prix Achat | Non | `cost_price` (prix partenaire) |
-| Marge % | **Oui** | Pourcentage de marge modifiable |
-| Marge € | Calculé | `cost_price × margin_percent / 100` |
-| Prix Vente | Calculé | `cost_price + margin_amount` |
-| Supprimer | Oui | Bouton corbeille |
+| Champ       | Éditable | Description                         |
+| ----------- | -------- | ----------------------------------- |
+| Description | Non      | Trajet (origine → destination)      |
+| Détails     | Non      | Partenaire, mode, délai, poids      |
+| Prix Achat  | Non      | `cost_price` (prix partenaire)      |
+| Marge %     | **Oui**  | Pourcentage de marge modifiable     |
+| Marge €     | Calculé  | `cost_price × margin_percent / 100` |
+| Prix Vente  | Calculé  | `cost_price + margin_amount`        |
+| Supprimer   | Oui      | Bouton corbeille                    |
 
 **Section Frais (`QuoteItemEditor`) :**
-| Champ | Éditable | Description |
-|-------|----------|-------------|
-| Description | Non | Libellé du frais |
-| Prix Vente | **Oui** | Montant modifiable directement |
-| Supprimer | Oui | Bouton corbeille |
+| Champ       | Éditable | Description                    |
+| ----------- | -------- | ------------------------------ |
+| Description | Non      | Libellé du frais               |
+| Prix Vente  | **Oui**  | Montant modifiable directement |
+| Supprimer   | Oui      | Bouton corbeille               |
 
 **Modal Ajout de Frais (`AddFeeModal`) :**
 - Permet d'ajouter des frais prédéfinis ou personnalisés
@@ -666,39 +688,39 @@ Le mode sélectionné est passé à la modal de recherche lors de l'ajout d'un t
 ```
 
 **Points d'accès à la modal :**
-| Emplacement | Action | Mode transport |
-|-------------|--------|----------------|
-| Header/Navbar | Bouton "🔍 Rechercher" | Aucun (tous modes) |
-| Éditeur Devis | Bouton "+ Ajouter un transport" | Mode sélectionné dans l'éditeur |
-| Page Résultats | Bouton "Nouvelle recherche" | Mode précédent conservé |
+| Emplacement    | Action                          | Mode transport                  |
+| -------------- | ------------------------------- | ------------------------------- |
+| Header/Navbar  | Bouton "🔍 Rechercher"           | Aucun (tous modes)              |
+| Éditeur Devis  | Bouton "+ Ajouter un transport" | Mode sélectionné dans l'éditeur |
+| Page Résultats | Bouton "Nouvelle recherche"     | Mode précédent conservé         |
 
 **Champs disponibles :**
-| Champ | Type | Obligatoire | Description |
-|-------|------|-------------|-------------|
-| `origin_country` | Select | Oui | FR, DE, IT, ES, BE |
-| `origin_postal_code` | Text | Non* | Code postal origine |
-| `origin_city` | Autocomplete | Non* | Ville origine |
-| `dest_country` | Select | Oui | FR, DE, IT, ES, BE |
-| `dest_postal_code` | Text | Non* | Code postal destination |
-| `dest_city` | Autocomplete | Non* | Ville destination |
-| `weight` | Number | Oui | Poids en kg |
-| `volume` | Number | Non | Volume en m³ |
-| `shipping_date` | Date | Oui | Date d'expédition |
+| Champ                | Type         | Obligatoire | Description             |
+| -------------------- | ------------ | ----------- | ----------------------- |
+| `origin_country`     | Select       | Oui         | FR, DE, IT, ES, BE      |
+| `origin_postal_code` | Text         | Non*        | Code postal origine     |
+| `origin_city`        | Autocomplete | Non*        | Ville origine           |
+| `dest_country`       | Select       | Oui         | FR, DE, IT, ES, BE      |
+| `dest_postal_code`   | Text         | Non*        | Code postal destination |
+| `dest_city`          | Autocomplete | Non*        | Ville destination       |
+| `weight`             | Number       | Oui         | Poids en kg             |
+| `volume`             | Number       | Non         | Volume en m³            |
+| `shipping_date`      | Date         | Oui         | Date d'expédition       |
 
 *Au moins ville OU code postal requis pour origine et destination.
 
 **Paramètre passé (non modifiable) :**
-| Paramètre | Source | Description |
-|-----------|--------|-------------|
+| Paramètre        | Source           | Description                              |
+| ---------------- | ---------------- | ---------------------------------------- |
 | `transport_mode` | Éditeur de devis | ROAD, RAIL, AIR, SEA ou undefined (tous) |
 
 **Comportement :**
-| Action | Résultat |
-|--------|----------|
-| Clic "Rechercher" | Ferme la modal, navigue vers `/results` avec les résultats |
-| Clic "Annuler" ou "X" | Ferme la modal, reste sur la page actuelle |
-| Clic hors modal | Ferme la modal |
-| Touche Escape | Ferme la modal |
+| Action                | Résultat                                                   |
+| --------------------- | ---------------------------------------------------------- |
+| Clic "Rechercher"     | Ferme la modal, navigue vers `/results` avec les résultats |
+| Clic "Annuler" ou "X" | Ferme la modal, reste sur la page actuelle                 |
+| Clic hors modal       | Ferme la modal                                             |
+| Touche Escape         | Ferme la modal                                             |
 
 #### 4.3.5 Page Résultats (`Results.tsx`)
 
@@ -754,15 +776,15 @@ Le mode sélectionné est passé à la modal de recherche lors de l'ajout d'un t
 ```
 
 **Informations affichées par résultat :**
-| Élément | Source | Description |
-|---------|--------|-------------|
-| Nom partenaire | `quote.partner.name` | Nom du transporteur |
-| Mode transport | `quote.transport_mode` | ROAD, RAIL, AIR, SEA |
-| Plage poids | `quote.weight_min` - `quote.weight_max` | Capacité en kg |
-| Délai transit | `quote.delivery_time` | Durée de livraison |
-| Ville destination | `quote.dest_city` | Ville de destination (si spécifique) |
-| Validité | `quote.valid_until` | Date limite de validité |
-| Prix | `quote.cost` + `quote.currency` | Prix estimé |
+| Élément           | Source                                  | Description                          |
+| ----------------- | --------------------------------------- | ------------------------------------ |
+| Nom partenaire    | `quote.partner.name`                    | Nom du transporteur                  |
+| Mode transport    | `quote.transport_mode`                  | ROAD, RAIL, AIR, SEA                 |
+| Plage poids       | `quote.weight_min` - `quote.weight_max` | Capacité en kg                       |
+| Délai transit     | `quote.delivery_time`                   | Durée de livraison                   |
+| Ville destination | `quote.dest_city`                       | Ville de destination (si spécifique) |
+| Validité          | `quote.valid_until`                     | Date limite de validité              |
+| Prix              | `quote.cost` + `quote.currency`         | Prix estimé                          |
 
 **Action disponible :** Bouton "Ajouter au devis" → appelle `addItem(quote.id, criteria.weight)`
 
@@ -818,12 +840,12 @@ Le mode sélectionné est passé à la modal de recherche lors de l'ajout d'un t
 ```
 
 **Fonctionnalités actuelles :**
-| Action | Fonction | Description |
-|--------|----------|-------------|
-| Fermer | `closeSidebar()` | Ferme le panel latéral |
-| Supprimer item | `removeItem(item.id)` | Retire une ligne du devis |
-| Vider | `clearQuote()` | Supprime tout le devis |
-| Finaliser | Navigation vers `/customer-quotes/{id}/edit` | Ouvre l'éditeur de prix |
+| Action         | Fonction                                     | Description               |
+| -------------- | -------------------------------------------- | ------------------------- |
+| Fermer         | `closeSidebar()`                             | Ferme le panel latéral    |
+| Supprimer item | `removeItem(item.id)`                        | Retire une ligne du devis |
+| Vider          | `clearQuote()`                               | Supprime tout le devis    |
+| Finaliser      | Navigation vers `/customer-quotes/{id}/edit` | Ouvre l'éditeur de prix   |
 
 ---
 
@@ -1026,18 +1048,18 @@ Postcondition: Devis supprimé de la base de données
 
 Le système accepte les colonnes suivantes (noms flexibles) :
 
-| Champ système | Variantes acceptées | Obligatoire |
-|---------------|---------------------|-------------|
-| `transport_mode` | mode, type_transport, mode_transport | ✓ |
-| `origin_city` | ville_origine, depart, from_city | ✓ |
-| `origin_country` | pays_origine, from_country | ✓ |
-| `destination_city` | ville_destination, arrivee, to_city | ✓ |
-| `destination_country` | pays_destination, to_country | ✓ |
-| `cost` | prix, tarif, price, montant | ✓ |
-| `weight_min` | poids_min, min_weight | - |
-| `weight_max` | poids_max, max_weight | - |
-| `delivery_time` | delai, transit_time, temps_livraison | - |
-| `valid_until` | validite, expiration, date_fin | - |
+| Champ système         | Variantes acceptées                  | Obligatoire |
+| --------------------- | ------------------------------------ | ----------- |
+| `transport_mode`      | mode, type_transport, mode_transport | ✓           |
+| `origin_city`         | ville_origine, depart, from_city     | ✓           |
+| `origin_country`      | pays_origine, from_country           | ✓           |
+| `destination_city`    | ville_destination, arrivee, to_city  | ✓           |
+| `destination_country` | pays_destination, to_country         | ✓           |
+| `cost`                | prix, tarif, price, montant          | ✓           |
+| `weight_min`          | poids_min, min_weight                | -           |
+| `weight_max`          | poids_max, max_weight                | -           |
+| `delivery_time`       | delai, transit_time, temps_livraison | -           |
+| `valid_until`         | validite, expiration, date_fin       | -           |
 
 ### 5.2 Exemple CSV
 
@@ -1053,10 +1075,10 @@ air,Paris,FR,New York,US,500,850.00,24h
 ### 5.3 Exemple Excel
 
 | Mode | Origine | Pays | Destination | Pays | Poids max (kg) | Prix (€) | Délai |
-|------|---------|------|-------------|------|----------------|----------|-------|
-| road | Paris | FR | Brussels | BE | 1000 | 120.50 | 48h |
-| road | Paris | FR | Amsterdam | NL | 1000 | 180.00 | 72h |
-| rail | Lyon | FR | Milan | IT | 5000 | 350.00 | 96h |
+| ---- | ------- | ---- | ----------- | ---- | -------------- | -------- | ----- |
+| road | Paris   | FR   | Brussels    | BE   | 1000           | 120.50   | 48h   |
+| road | Paris   | FR   | Amsterdam   | NL   | 1000           | 180.00   | 72h   |
+| rail | Lyon    | FR   | Milan       | IT   | 5000           | 350.00   | 96h   |
 
 ### 5.4 Données normalisées (sortie)
 
@@ -1278,31 +1300,31 @@ class CustomerQuoteItem(Base):
 
 ### 7.1 Endpoints
 
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| `POST` | `/api/v1/imports/upload` | Importer un fichier tarifs |
-| `GET` | `/api/v1/imports/{id}` | Statut d'un import |
-| `POST` | `/api/v1/partners` | Créer un partenaire |
-| `GET` | `/api/v1/partners` | Liste des partenaires |
-| `GET` | `/api/v1/partners/{id}` | Détails d'un partenaire |
-| `PUT` | `/api/v1/partners/{id}` | Modifier un partenaire |
-| `DELETE` | `/api/v1/partners/{id}` | Supprimer un partenaire |
-| `DELETE` | `/api/v1/partners/{id}/quotes` | Supprimer tous les tarifs d'un partenaire |
-| `GET` | `/api/v1/cities/suggest` | Autocomplétion des villes |
-| `POST` | `/api/v1/match` | Rechercher des offres |
-| `POST` | `/api/v1/generated-quotes` | Générer un devis |
-| `GET` | `/api/v1/generated-quotes/{id}` | Détail d'un devis |
-| | | |
-| **Devis Clients** | | |
-| `POST` | `/api/v1/customer-quotes` | Créer un nouveau devis (brouillon) |
-| `GET` | `/api/v1/customer-quotes` | Lister les devis |
-| `GET` | `/api/v1/customer-quotes/{id}` | Détail d'un devis |
-| `PUT` | `/api/v1/customer-quotes/{id}` | Modifier un devis (client, validité) |
-| `DELETE` | `/api/v1/customer-quotes/{id}` | Supprimer un devis |
-| `POST` | `/api/v1/customer-quotes/{id}/items` | Ajouter un transport au devis |
-| `PUT` | `/api/v1/customer-quotes/{id}/items/{item_id}` | Modifier une ligne (marge, prix) |
-| `DELETE` | `/api/v1/customer-quotes/{id}/items/{item_id}` | Retirer une ligne |
-| `POST` | `/api/v1/customer-quotes/{id}/fees` | Ajouter une ligne de frais |
+| Méthode           | Endpoint                                       | Description                               |
+| ----------------- | ---------------------------------------------- | ----------------------------------------- |
+| `POST`            | `/api/v1/imports/upload`                       | Importer un fichier tarifs                |
+| `GET`             | `/api/v1/imports/{id}`                         | Statut d'un import                        |
+| `POST`            | `/api/v1/partners`                             | Créer un partenaire                       |
+| `GET`             | `/api/v1/partners`                             | Liste des partenaires                     |
+| `GET`             | `/api/v1/partners/{id}`                        | Détails d'un partenaire                   |
+| `PUT`             | `/api/v1/partners/{id}`                        | Modifier un partenaire                    |
+| `DELETE`          | `/api/v1/partners/{id}`                        | Supprimer un partenaire                   |
+| `DELETE`          | `/api/v1/partners/{id}/quotes`                 | Supprimer tous les tarifs d'un partenaire |
+| `GET`             | `/api/v1/cities/suggest`                       | Autocomplétion des villes                 |
+| `POST`            | `/api/v1/match`                                | Rechercher des offres                     |
+| `POST`            | `/api/v1/generated-quotes`                     | Générer un devis                          |
+| `GET`             | `/api/v1/generated-quotes/{id}`                | Détail d'un devis                         |
+|                   |                                                |                                           |
+| **Devis Clients** |                                                |                                           |
+| `POST`            | `/api/v1/customer-quotes`                      | Créer un nouveau devis (brouillon)        |
+| `GET`             | `/api/v1/customer-quotes`                      | Lister les devis                          |
+| `GET`             | `/api/v1/customer-quotes/{id}`                 | Détail d'un devis                         |
+| `PUT`             | `/api/v1/customer-quotes/{id}`                 | Modifier un devis (client, validité)      |
+| `DELETE`          | `/api/v1/customer-quotes/{id}`                 | Supprimer un devis                        |
+| `POST`            | `/api/v1/customer-quotes/{id}/items`           | Ajouter un transport au devis             |
+| `PUT`             | `/api/v1/customer-quotes/{id}/items/{item_id}` | Modifier une ligne (marge, prix)          |
+| `DELETE`          | `/api/v1/customer-quotes/{id}/items/{item_id}` | Retirer une ligne                         |
+| `POST`            | `/api/v1/customer-quotes/{id}/fees`            | Ajouter une ligne de frais                |
 
 ### 7.2 Import de fichier
 
@@ -1343,18 +1365,18 @@ Recherche des tarifs correspondant aux critères de transport.
 
 #### Paramètres
 
-| Paramètre | Type | Requis | Description |
-|-----------|------|--------|-------------|
-| `origin_country` | string | Oui | Code pays ISO (ex: FR, BE) |
-| `origin_postal_code` | string | Conditionnel* | Code postal origine |
-| `origin_city` | string | Conditionnel* | Ville d'origine |
-| `dest_country` | string | Oui | Code pays ISO destination |
-| `dest_postal_code` | string | Conditionnel* | Code postal destination |
-| `dest_city` | string | Conditionnel* | Ville de destination |
-| `weight` | number | Non | Poids en kg |
-| `volume` | number | Non | Volume en m³ |
-| `sort_by` | string | Non | Tri : `cost` (défaut), `delivery_time` |
-| `limit` | number | Non | Nombre max de résultats (défaut: 10) |
+| Paramètre            | Type   | Requis        | Description                            |
+| -------------------- | ------ | ------------- | -------------------------------------- |
+| `origin_country`     | string | Oui           | Code pays ISO (ex: FR, BE)             |
+| `origin_postal_code` | string | Conditionnel* | Code postal origine                    |
+| `origin_city`        | string | Conditionnel* | Ville d'origine                        |
+| `dest_country`       | string | Oui           | Code pays ISO destination              |
+| `dest_postal_code`   | string | Conditionnel* | Code postal destination                |
+| `dest_city`          | string | Conditionnel* | Ville de destination                   |
+| `weight`             | number | Non           | Poids en kg                            |
+| `volume`             | number | Non           | Volume en m³                           |
+| `sort_by`            | string | Non           | Tri : `cost` (défaut), `delivery_time` |
+| `limit`              | number | Non           | Nombre max de résultats (défaut: 10)   |
 
 *\* Conditionnel : Au moins `postal_code` OU `city` requis pour origine et destination*
 
@@ -1475,9 +1497,9 @@ curl -X DELETE http://localhost:3000/api/v1/partners/a619635b-32b3-4003-9953-5c7
 
 #### Paramètres
 
-| Paramètre | Type | Requis | Description |
-|-----------|------|--------|-------------|
-| `partner_id` | UUID | Oui | Identifiant unique du partenaire |
+| Paramètre    | Type | Requis | Description                      |
+| ------------ | ---- | ------ | -------------------------------- |
+| `partner_id` | UUID | Oui    | Identifiant unique du partenaire |
 
 #### Réponse (succès - 200)
 
@@ -1568,11 +1590,11 @@ curl "http://localhost:3000/api/v1/cities/suggest?q=lyon&type=dest"
 
 #### Paramètres
 
-| Paramètre | Type | Requis | Défaut | Description |
-|-----------|------|--------|--------|-------------|
-| `q` | string | Oui | - | Terme de recherche (min 2 caractères) |
-| `type` | string | Non | `both` | Type de ville : `origin`, `dest`, ou `both` |
-| `limit` | int | Non | 10 | Nombre max de suggestions |
+| Paramètre | Type   | Requis | Défaut | Description                                 |
+| --------- | ------ | ------ | ------ | ------------------------------------------- |
+| `q`       | string | Oui    | -      | Terme de recherche (min 2 caractères)       |
+| `type`    | string | Non    | `both` | Type de ville : `origin`, `dest`, ou `both` |
+| `limit`   | int    | Non    | 10     | Nombre max de suggestions                   |
 
 #### Réponse (succès - 200)
 
@@ -1877,16 +1899,16 @@ DELETE /api/v1/customer-quotes/{quote_id}
 
 ### 8.1 Technologies
 
-| Composant | Technologie |
-|-----------|-------------|
-| Backend | Python 3.12 + FastAPI |
-| Base de données | PostgreSQL 16 |
-| ORM | SQLAlchemy + Alembic |
-| Parsing CSV/Excel | pandas + openpyxl |
-| Parsing PDF | pdfplumber |
-| Génération PDF | reportlab |
-| Email | aiosmtplib |
-| Cache | Redis |
+| Composant         | Technologie           |
+| ----------------- | --------------------- |
+| Backend           | Python 3.12 + FastAPI |
+| Base de données   | PostgreSQL 16         |
+| ORM               | SQLAlchemy + Alembic  |
+| Parsing CSV/Excel | pandas + openpyxl     |
+| Parsing PDF       | pdfplumber            |
+| Génération PDF    | reportlab             |
+| Email             | aiosmtplib            |
+| Cache             | Redis                 |
 
 ### 8.2 Structure du projet
 

@@ -15,10 +15,10 @@ def upload_file(
     partner_id: str = Form(...),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN", "OPERATOR"))
+    current_user: User = Depends(require_role("SUPER_ADMIN"))
 ):
     """
-    Uploader un fichier de tarifs pour un partenaire (ADMIN, OPERATOR).
+    Uploader un fichier de tarifs pour un partenaire (SUPER_ADMIN).
     Crée un Job d'import en statut PENDING.
     """
     # Vérifier que le partenaire existe
@@ -66,7 +66,7 @@ def upload_file(
 def get_import_job(
     job_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN", "OPERATOR"))
+    current_user: User = Depends(require_role("SUPER_ADMIN"))
 ):
     """Récupérer le statut d'un job d'import (ADMIN, OPERATOR)."""
     job = ImportService.get_job(db, job_id)

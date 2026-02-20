@@ -62,7 +62,7 @@ def get_quote(
 def delete_quote(
     quote_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN", "OPERATOR"))
+    current_user: User = Depends(require_role("SUPER_ADMIN"))
 ):
     """Supprimer un tarif (ADMIN, OPERATOR)."""
     success = QuoteService.delete_quote(db, quote_id)

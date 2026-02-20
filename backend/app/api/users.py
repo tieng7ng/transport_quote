@@ -1,16 +1,3 @@
-from typing import Any, List
-from uuid import UUID
-
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-
-from app.core.database import get_db
-from app.core.deps import get_current_user, require_role
-from app.models.user import User
-from app.schemas.auth import UserResponse, UserUpdate
-from app.core import security
-
-router = APIRouter()
 
 from typing import Any, List
 from uuid import UUID

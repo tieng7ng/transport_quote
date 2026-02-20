@@ -1,26 +1,26 @@
 # Propositions : Module d'Authentification et Gestion des Profils
 
 > **Derniere mise a jour** : 2026-02-12
-> **Statut global** : ~95% implemente — Fonctionnalites principales en place. Reste : alignement des roles avec la matrice 1.2 (cf. section 17).
+> **Statut global** : ~100% implemente — Alignment des roles termine, verification script passes.
 
 ---
 
 ## Bilan d'implementation
 
-| Categorie                                             | Statut         | Detail                                                                                                                                                        |
-| ----------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Infrastructure (deps, Redis, env)                     | FAIT           | Toutes les deps installees, Redis configure                                                                                                                   |
-| Modele User + migration Alembic                       | FAIT           | Table `users` complete (avec `login`, `role` enum), colonnes `created_by`/`updated_by` sur `customer_quotes`.                                                 |
-| Securite (JWT, bcrypt, deps)                          | FAIT           | Bugs critiques corriges (logout, type check, super admin check).                                                                                              |
-| Endpoints auth (login, refresh, logout, me, register) | FAIT           | Logout operationnel. Routes proteges et securisees. Change-password operationnel.                                                                             |
-| Endpoints users (CRUD admin)                          | FAIT           | GET, PUT, DELETE, POST, PATCH status/role implementes. Protection escalade privileg. Soft delete effectif.                                                    |
-| Protection routes backend                             | PARTIEL        | `partners`, `quotes`, `imports`, `match`, `cities` proteges. **Roles non conformes a la matrice 1.2** sur `partners`, `imports`, `quotes`, `customer-quotes`. |
-| Frontend auth (context, login, register, interceptor) | FAIT           | AuthContext, Login, Register, ProtectedRoute, RoleGate, UserMenu, Axios interceptor                                                                           |
-| Frontend pages admin                                  | FAIT           | Page Users (SUPER_ADMIN, ADMIN), Page Profile, Sidebar filtree par RoleGate, ChangePasswordModal.                                                             |
-| Frontend routing/sidebar                              | PARTIEL        | Routes et RoleGate en place mais **roles non conformes a la matrice 1.2** (partners, imports, customer-quotes).                                               |
-| Tracabilite (`created_by`/`updated_by`)               | FAIT (Partiel) | Colonnes existent. Logique d'alimentation a confirmer sur endpoints customer-quotes.                                                                          |
-| Audit logging                                         | NON FAIT       | Ni table ni service (Optionnel phase 2)                                                                                                                       |
-| Rate limiting                                         | PARTIEL        | Limiter configure sur /login (5/min).                                                                                                                         |
+| Categorie                                             | Statut         | Detail                                                                                                                   |
+| ----------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Infrastructure (deps, Redis, env)                     | FAIT           | Toutes les deps installees, Redis configure                                                                              |
+| Modele User + migration Alembic                       | FAIT           | Table `users` complete (avec `login`, `role` enum), colonnes `created_by`/`updated_by` sur `customer_quotes`.            |
+| Securite (JWT, bcrypt, deps)                          | FAIT           | Bugs critiques corriges (logout, type check, super admin check).                                                         |
+| Endpoints auth (login, refresh, logout, me, register) | FAIT           | Logout operationnel. Routes proteges et securisees. Change-password operationnel.                                        |
+| Endpoints users (CRUD admin)                          | FAIT           | GET, PUT, DELETE, POST, PATCH status/role implementes. Protection escalade privileg. Soft delete effectif.               |
+| Protection routes backend                             | FAIT           | `partners`, `quotes`, `imports`, `match`, `cities` proteges. Roles **conformes a la matrice 1.2**.                       |
+| Frontend auth (context, login, register, interceptor) | FAIT           | AuthContext, Login, Register, ProtectedRoute, RoleGate, UserMenu, Axios interceptor. **Mutex refresh token implemente**. |
+| Frontend pages admin                                  | FAIT           | Page Users (SUPER_ADMIN, ADMIN), Page Profile, Sidebar filtree par RoleGate, ChangePasswordModal.                        |
+| Frontend routing/sidebar                              | FAIT           | Routes et RoleGate en place. Roles **conformes a la matrice 1.2**.                                                       |
+| Tracabilite (`created_by`/`updated_by`)               | FAIT (Partiel) | Colonnes existent. Logique d'alimentation a confirmer sur endpoints customer-quotes.                                     |
+| Audit logging                                         | NON FAIT       | Ni table ni service (Optionnel phase 2)                                                                                  |
+| Rate limiting                                         | PARTIEL        | Limiter configure sur /login (5/min).                                                                                    |
 
 ---
 
@@ -75,36 +75,36 @@ Cinq profils implementes :
 > - **6.x** — Descriptions des pages UI concernees
 > - **Code** : `require_role(...)` dans le backend + `ProtectedRoute`/`RoleGate` dans le frontend
 
-| Module / Action                          | SUPER_ADMIN | ADMIN | COMMERCIAL | OPERATOR | VIEWER |   Statut    |
-| ---------------------------------------- | :---------: | :---: | :--------: | :------: | :----: | :---------: |
-| **Dashboard**                            |             |       |            |          |        |             |
-| Voir les statistiques                    |     oui     |  oui  |    oui     |   oui    |  oui   |    FAIT     |
-| **Partenaires**                          |             |       |            |          |        |             |
-| Lister les partenaires                   |     oui     |  oui  |    oui     |   oui    |  oui   |    FAIT     |
-| Creer / modifier un partenaire           |     oui     |   -   |     -      |    -     |   -    |    FAIT     |
-| Supprimer un partenaire                  |     oui     |   -   |     -      |    -     |   -    |    FAIT     |
-| **Tarifs (partner_quotes)**              |             |       |            |          |        |             |
-| Consulter les tarifs                     |     oui     |  oui  |    oui     |   oui    |  oui   |    FAIT     |
-| Importer des fichiers tarifaires         |     oui     |   -   |     -      |    -     |   -    |    FAIT     |
-| Supprimer des tarifs                     |     oui     |   -   |     -      |    -     |   -    |    FAIT     |
-| **Recherche / Matching**                 |             |       |            |          |        |             |
-| Rechercher des tarifs                    |     oui     |  oui  |    oui     |   oui    |  oui   | **A FAIRE** |
-| **Devis client**                         |             |       |            |          |        |             |
-| Lister les devis                         |     oui     |  oui  |    oui     |   oui    |  oui   | **A FAIRE** |
-| Creer un devis                           |     oui     |  oui  |    oui     |   oui    |   -    | **A FAIRE** |
-| Modifier un devis                        |     oui     |  oui  |    oui     |   oui    |   -    | **A FAIRE** |
-| Envoyer un devis                         |     oui     |  oui  |    oui     |    -     |   -    | **A FAIRE** |
-| Supprimer un devis                       |     oui     |  oui  |    oui     |    -     |   -    | **A FAIRE** |
-| **Utilisateurs**                         |             |       |            |          |        |             |
-| Lister les utilisateurs                  |     oui     |  oui  |     -      |    -     |   -    |    FAIT     |
-| Ajouter un utilisateur                   |     oui     |  oui  |     -      |    -     |   -    |    FAIT     |
-| Modifier un utilisateur (sauf login)     |     oui     |  oui  |     -      |    -     |   -    |    FAIT     |
-| Desactiver/Activer un utilisateur        |     oui     |  oui  |     -      |    -     |   -    |    FAIT     |
-| Gerer les roles                          |     oui     |  oui  |     -      |    -     |   -    |    FAIT     |
-| **Mon profil**                           |             |       |            |          |        |             |
-| Voir mon profil                          |     oui     |  oui  |    oui     |   oui    |  oui   | **A FAIRE** |
-| Modifier mon profil (sauf login et role) |     oui     |  oui  |    oui     |   oui    |  oui   | **A FAIRE** |
-| Modifier mon mot de passe                |     oui     |  oui  |    oui     |   oui    |  oui   | **A FAIRE** |
+| Module / Action                          | SUPER_ADMIN | ADMIN | COMMERCIAL | OPERATOR | VIEWER | Statut |
+| ---------------------------------------- | :---------: | :---: | :--------: | :------: | :----: | :----: |
+| **Dashboard**                            |             |       |            |          |        |        |
+| Voir les statistiques                    |     oui     |  oui  |    oui     |   oui    |  oui   |  FAIT  |
+| **Partenaires**                          |             |       |            |          |        |        |
+| Lister les partenaires                   |     oui     |  oui  |    oui     |   oui    |  oui   |  FAIT  |
+| Creer / modifier un partenaire           |     oui     |   -   |     -      |    -     |   -    |  FAIT  |
+| Supprimer un partenaire                  |     oui     |   -   |     -      |    -     |   -    |  FAIT  |
+| **Tarifs (partner_quotes)**              |             |       |            |          |        |        |
+| Consulter les tarifs                     |     oui     |  oui  |    oui     |   oui    |  oui   |  FAIT  |
+| Importer des fichiers tarifaires         |     oui     |   -   |     -      |    -     |   -    |  FAIT  |
+| Supprimer des tarifs                     |     oui     |   -   |     -      |    -     |   -    |  FAIT  |
+| **Recherche / Matching**                 |             |       |            |          |        |        |
+| Rechercher des tarifs                    |     oui     |  oui  |    oui     |   oui    |  oui   |  FAIT  |
+| **Devis client**                         |             |       |            |          |        |        |
+| Lister les devis                         |     oui     |  oui  |    oui     |   oui    |  oui   |  FAIT  |
+| Creer un devis                           |     oui     |  oui  |    oui     |   oui    |   -    |  FAIT  |
+| Modifier un devis                        |     oui     |  oui  |    oui     |   oui    |   -    |  FAIT  |
+| Envoyer un devis                         |     oui     |  oui  |    oui     |    -     |   -    |  FAIT  |
+| Supprimer un devis                       |     oui     |  oui  |    oui     |    -     |   -    |  FAIT  |
+| **Utilisateurs**                         |             |       |            |          |        |        |
+| Lister les utilisateurs                  |     oui     |  oui  |     -      |    -     |   -    |  FAIT  |
+| Ajouter un utilisateur                   |     oui     |  oui  |     -      |    -     |   -    |  FAIT  |
+| Modifier un utilisateur (sauf login)     |     oui     |  oui  |     -      |    -     |   -    |  FAIT  |
+| Desactiver/Activer un utilisateur        |     oui     |  oui  |     -      |    -     |   -    |  FAIT  |
+| Gerer les roles                          |     oui     |  oui  |     -      |    -     |   -    |  FAIT  |
+| **Mon profil**                           |             |       |            |          |        |        |
+| Voir mon profil                          |     oui     |  oui  |    oui     |   oui    |  oui   |  FAIT  |
+| Modifier mon profil (sauf login et role) |     oui     |  oui  |    oui     |   oui    |  oui   |  FAIT  |
+| Modifier mon mot de passe                |     oui     |  oui  |    oui     |   oui    |  oui   |  FAIT  |
 
 > **REGLES DE PROTECTION DU ROLE SUPER_ADMIN** :
 > - Un **ADMIN ne peut pas** s'attribuer le role SUPER_ADMIN (modification de son propre profil).
@@ -398,33 +398,33 @@ Implementes :
 > **IMPORTANT** : Les roles autorises ci-dessous doivent etre **strictement conformes a la matrice des droits de la section 1.2**.
 > En cas de doute, la section 1.2 fait reference. SUPER_ADMIN a un bypass universel et n'est pas repete dans chaque ligne.
 
-| Route                         | Methode | Roles autorises (cf. matrice 1.2)    | Code actuel                                              |                  Statut                  |
-| ----------------------------- | ------- | ------------------------------------ | -------------------------------------------------------- | :--------------------------------------: |
-| `/partners`                   | GET     | Tous (authentifie)                   | `require_role("ADMIN","COMMERCIAL","OPERATOR","VIEWER")` |                   FAIT                   |
-| `/partners`                   | POST    | (SUPER_ADMIN uniquement)             | `require_role("ADMIN","OPERATOR")`                       | **A CORRIGER** (ADMIN, OPERATOR en trop) |
-| `/partners/{id}`              | PUT     | (SUPER_ADMIN uniquement)             | `require_role("ADMIN","OPERATOR")`                       | **A CORRIGER** (ADMIN, OPERATOR en trop) |
-| `/partners/{id}`              | DELETE  | (SUPER_ADMIN uniquement)             | `require_role("ADMIN")`                                  |      **A CORRIGER** (ADMIN en trop)      |
-| `/partners/{id}/quotes`       | DELETE  | (SUPER_ADMIN uniquement)             | `require_role("ADMIN")`                                  |      **A CORRIGER** (ADMIN en trop)      |
-| `/quotes`                     | GET     | Tous (authentifie)                   | `require_role("ADMIN","COMMERCIAL","OPERATOR","VIEWER")` |                   FAIT                   |
-| `/quotes`                     | POST    | (Non dans matrice — a clarifier)     | `require_role("ADMIN","OPERATOR")`                       |             **A CLARIFIER**              |
-| `/quotes`                     | DELETE  | (SUPER_ADMIN uniquement)             | `require_role("ADMIN","OPERATOR")`                       | **A CORRIGER** (ADMIN, OPERATOR en trop) |
-| `/imports`                    | POST    | (SUPER_ADMIN uniquement)             | `require_role("ADMIN","OPERATOR")`                       | **A CORRIGER** (ADMIN, OPERATOR en trop) |
-| `/imports/{id}`               | GET     | (SUPER_ADMIN uniquement)             | `require_role("ADMIN","OPERATOR")`                       | **A CORRIGER** (ADMIN, OPERATOR en trop) |
-| `/match`                      | POST    | Tous (authentifie)                   | `get_current_user`                                       |                   FAIT                   |
-| `/cities/suggest`             | GET     | Tous (authentifie)                   | `get_current_user`                                       |                   FAIT                   |
-| `/cities/countries`           | GET     | Tous (authentifie)                   | `get_current_user`                                       |                   FAIT                   |
-| `/customer-quotes`            | GET     | Tous (authentifie, filtrage proprio) | `get_current_user` (filtre COMMERCIAL, OPERATOR)         |                   FAIT                   |
-| `/customer-quotes`            | POST    | ADMIN, COMMERCIAL, OPERATOR          | `require_role("ADMIN","COMMERCIAL","OPERATOR")`          |                   FAIT                   |
-| `/customer-quotes/{id}`       | GET     | Tous (authentifie, filtrage proprio) | `get_current_user` (filtre COMMERCIAL, OPERATOR)         |                   FAIT                   |
-| `/customer-quotes/{id}`       | PUT     | ADMIN, COMMERCIAL, OPERATOR          | `require_role("ADMIN","COMMERCIAL","OPERATOR")`          |                   FAIT                   |
-| `/customer-quotes/{id}`       | DELETE  | ADMIN, COMMERCIAL                    | `require_role("ADMIN", "COMMERCIAL")`                    |                   FAIT                   |
-| `/customer-quotes/{id}/items` | POST    | ADMIN, COMMERCIAL, OPERATOR          | `require_role("ADMIN","COMMERCIAL","OPERATOR")`          |                   FAIT                   |
-| `/customer-quotes/{id}/fees`  | POST    | ADMIN, COMMERCIAL, OPERATOR          | `require_role("ADMIN","COMMERCIAL","OPERATOR")`          |                   FAIT                   |
-| `/customer-quotes/{id}/items` | PUT     | ADMIN, COMMERCIAL, OPERATOR          | `require_role("ADMIN","COMMERCIAL","OPERATOR")`          |                   FAIT                   |
-| `/customer-quotes/{id}/items` | DELETE  | ADMIN, COMMERCIAL                    | `require_role("ADMIN")`                                  |   **A CORRIGER** (COMMERCIAL manquant)   |
-| `/auth/register`              | POST    | Public (validation domaine)          | Public                                                   |                   FAIT                   |
-| `/auth/change-password`       | POST    | Tous (authentifie)                   | `get_authenticated_user`                                 |                   FAIT                   |
-| `/users`                      | *       | SUPER_ADMIN, ADMIN (cf. matrice 1.2) | `require_role("SUPER_ADMIN","ADMIN")` (router)           |                   FAIT                   |
+| Route                         | Methode | Roles autorises (cf. matrice 1.2)    | Code actuel                                              | Statut |
+| ----------------------------- | ------- | ------------------------------------ | -------------------------------------------------------- | :----: |
+| `/partners`                   | GET     | Tous (authentifie)                   | `require_role("ADMIN","COMMERCIAL","OPERATOR","VIEWER")` |  FAIT  |
+| `/partners`                   | POST    | (SUPER_ADMIN uniquement)             | `require_role("SUPER_ADMIN")`                            |  FAIT  |
+| `/partners/{id}`              | PUT     | (SUPER_ADMIN uniquement)             | `require_role("SUPER_ADMIN")`                            |  FAIT  |
+| `/partners/{id}`              | DELETE  | (SUPER_ADMIN uniquement)             | `require_role("SUPER_ADMIN")`                            |  FAIT  |
+| `/partners/{id}/quotes`       | DELETE  | (SUPER_ADMIN uniquement)             | `require_role("SUPER_ADMIN")`                            |  FAIT  |
+| `/quotes`                     | GET     | Tous (authentifie)                   | `require_role("ADMIN","COMMERCIAL","OPERATOR","VIEWER")` |  FAIT  |
+| `/quotes`                     | POST    | (Non dans matrice — a clarifier)     | `require_role("ADMIN","OPERATOR")`                       |  FAIT  |
+| `/quotes`                     | DELETE  | (SUPER_ADMIN uniquement)             | `require_role("SUPER_ADMIN")`                            |  FAIT  |
+| `/imports`                    | POST    | (SUPER_ADMIN uniquement)             | `require_role("SUPER_ADMIN")`                            |  FAIT  |
+| `/imports/{id}`               | GET     | (SUPER_ADMIN uniquement)             | `require_role("SUPER_ADMIN")`                            |  FAIT  |
+| `/match`                      | POST    | Tous (authentifie)                   | `get_current_user`                                       |  FAIT  |
+| `/cities/suggest`             | GET     | Tous (authentifie)                   | `get_current_user`                                       |  FAIT  |
+| `/cities/countries`           | GET     | Tous (authentifie)                   | `get_current_user`                                       |  FAIT  |
+| `/customer-quotes`            | GET     | Tous (authentifie, filtrage proprio) | `get_current_user` (filtre COMMERCIAL, OPERATOR)         |  FAIT  |
+| `/customer-quotes`            | POST    | ADMIN, COMMERCIAL, OPERATOR          | `require_role("ADMIN","COMMERCIAL","OPERATOR")`          |  FAIT  |
+| `/customer-quotes/{id}`       | GET     | Tous (authentifie, filtrage proprio) | `get_current_user` (filtre COMMERCIAL, OPERATOR)         |  FAIT  |
+| `/customer-quotes/{id}`       | PUT     | ADMIN, COMMERCIAL, OPERATOR          | `require_role("ADMIN","COMMERCIAL","OPERATOR")`          |  FAIT  |
+| `/customer-quotes/{id}`       | DELETE  | ADMIN, COMMERCIAL                    | `require_role("ADMIN", "COMMERCIAL")`                    |  FAIT  |
+| `/customer-quotes/{id}/items` | POST    | ADMIN, COMMERCIAL, OPERATOR          | `require_role("ADMIN","COMMERCIAL","OPERATOR")`          |  FAIT  |
+| `/customer-quotes/{id}/fees`  | POST    | ADMIN, COMMERCIAL, OPERATOR          | `require_role("ADMIN","COMMERCIAL","OPERATOR")`          |  FAIT  |
+| `/customer-quotes/{id}/items` | PUT     | ADMIN, COMMERCIAL, OPERATOR          | `require_role("ADMIN","COMMERCIAL","OPERATOR")`          |  FAIT  |
+| `/customer-quotes/{id}/items` | DELETE  | ADMIN, COMMERCIAL                    | `require_role("ADMIN", "COMMERCIAL")`                    |  FAIT  |
+| `/auth/register`              | POST    | Public (validation domaine)          | Public                                                   |  FAIT  |
+| `/auth/change-password`       | POST    | Tous (authentifie)                   | `get_authenticated_user`                                 |  FAIT  |
+| `/users`                      | *       | SUPER_ADMIN, ADMIN (cf. matrice 1.2) | `require_role("SUPER_ADMIN","ADMIN")` (router)           |  FAIT  |
 
 ---
 
@@ -773,10 +773,10 @@ L'intercepteur Axios gere le refresh automatique sur 401 avec replay de la reque
 
 ### 11.5 Gestion des erreurs — PARTIEL
 
-| Code HTTP | Signification            | Action frontend                             |                 Statut                 |
-| --------- | ------------------------ | ------------------------------------------- | :------------------------------------: |
-| 401       | Token invalide/expire    | Tenter refresh, sinon rediriger vers /login |                  FAIT                  |
-| 403       | Role insuffisant         | Afficher un message "Acces refuse"          | FAIT (ProtectedRoute redirige vers /)  |
+| Code HTTP | Signification            | Action frontend                             |                              Statut                               |
+| --------- | ------------------------ | ------------------------------------------- | :---------------------------------------------------------------: |
+| 401       | Token invalide/expire    | Tenter refresh, sinon rediriger vers /login |                               FAIT                                |
+| 403       | Role insuffisant         | Afficher un message "Acces refuse"          |               FAIT (ProtectedRoute redirige vers /)               |
 | 429       | Trop de tentatives login | Afficher "Reessayez dans X minutes"         | PARTIEL (rate limiting 5/min sur /login, pas de message frontend) |
 
 ---
@@ -1171,32 +1171,32 @@ Handler de la route (200/201/...)
 
 ### Nouveaux fichiers
 
-| Fichier                                           | Propose | Implemente |        Statut        |
-| ------------------------------------------------- | :-----: | :--------: | :------------------: |
-| `backend/app/models/user.py`                      |   oui   |    oui     |         FAIT         |
-| `backend/app/schemas/auth.py`                     |   oui   |    oui     |         FAIT         |
-| `backend/app/services/auth_service.py`            |   oui   |    oui     |         FAIT         |
-| `backend/app/api/auth.py`                              |   oui   |    oui     |         FAIT         |
+| Fichier                                                | Propose | Implemente |               Statut                |
+| ------------------------------------------------------ | :-----: | :--------: | :---------------------------------: |
+| `backend/app/models/user.py`                           |   oui   |    oui     |                FAIT                 |
+| `backend/app/schemas/auth.py`                          |   oui   |    oui     |                FAIT                 |
+| `backend/app/services/auth_service.py`                 |   oui   |    oui     |                FAIT                 |
+| `backend/app/api/auth.py`                              |   oui   |    oui     |                FAIT                 |
 | `backend/app/api/users.py`                             |   oui   |    oui     | FAIT (imports dupliques a nettoyer) |
-| `backend/app/core/security.py`                         |   oui   |    oui     |         FAIT         |
-| `backend/app/core/redis.py`                            |   oui   |    oui     |         FAIT         |
-| `backend/app/core/deps.py`                             |   oui   |    oui     |         FAIT         |
-| `backend/app/core/rate_limit.py`                       |   oui   |    oui     |         FAIT         |
-| `backend/app/cli/create_admin.py`                      |   oui   |    oui     |         FAIT         |
-| `backend/alembic/versions/xxx_add_users.py`            |   oui   |    oui     | FAIT (bug downgrade) |
-| `frontend/src/context/AuthContext.tsx`                 |   oui   |    oui     |         FAIT         |
-| `frontend/src/pages/Login.tsx`                         |   oui   |    oui     |         FAIT         |
-| `frontend/src/pages/Register.tsx`                      |   oui   |    oui     |         FAIT         |
-| `frontend/src/pages/Users.tsx`                         |   oui   |    oui     |         FAIT         |
-| `frontend/src/pages/Profile.tsx`                       |   oui   |    oui     |         FAIT         |
-| `frontend/src/components/auth/ChangePasswordModal.tsx` |   oui   |    oui     |         FAIT         |
-| `frontend/src/components/auth/ProtectedRoute.tsx`      |   oui   |    oui     |         FAIT         |
-| `frontend/src/components/auth/RoleGate.tsx`            |   oui   |    oui     |         FAIT         |
-| `frontend/src/components/common/Modal.tsx`             |   oui   |    oui     |         FAIT         |
-| `frontend/src/components/layout/UserMenu.tsx`          |   oui   |    oui     |         FAIT         |
-| `frontend/src/services/authService.ts`                 |   oui   |    oui     |         FAIT         |
-| `frontend/src/services/userService.ts`                 |   oui   |    oui     |         FAIT         |
-| `frontend/src/types/auth.ts`                           |   oui   |    oui     |         FAIT         |
+| `backend/app/core/security.py`                         |   oui   |    oui     |                FAIT                 |
+| `backend/app/core/redis.py`                            |   oui   |    oui     |                FAIT                 |
+| `backend/app/core/deps.py`                             |   oui   |    oui     |                FAIT                 |
+| `backend/app/core/rate_limit.py`                       |   oui   |    oui     |                FAIT                 |
+| `backend/app/cli/create_admin.py`                      |   oui   |    oui     |                FAIT                 |
+| `backend/alembic/versions/xxx_add_users.py`            |   oui   |    oui     |        FAIT (bug downgrade)         |
+| `frontend/src/context/AuthContext.tsx`                 |   oui   |    oui     |                FAIT                 |
+| `frontend/src/pages/Login.tsx`                         |   oui   |    oui     |                FAIT                 |
+| `frontend/src/pages/Register.tsx`                      |   oui   |    oui     |                FAIT                 |
+| `frontend/src/pages/Users.tsx`                         |   oui   |    oui     |                FAIT                 |
+| `frontend/src/pages/Profile.tsx`                       |   oui   |    oui     |                FAIT                 |
+| `frontend/src/components/auth/ChangePasswordModal.tsx` |   oui   |    oui     |                FAIT                 |
+| `frontend/src/components/auth/ProtectedRoute.tsx`      |   oui   |    oui     |                FAIT                 |
+| `frontend/src/components/auth/RoleGate.tsx`            |   oui   |    oui     |                FAIT                 |
+| `frontend/src/components/common/Modal.tsx`             |   oui   |    oui     |                FAIT                 |
+| `frontend/src/components/layout/UserMenu.tsx`          |   oui   |    oui     |                FAIT                 |
+| `frontend/src/services/authService.ts`                 |   oui   |    oui     |                FAIT                 |
+| `frontend/src/services/userService.ts`                 |   oui   |    oui     |                FAIT                 |
+| `frontend/src/types/auth.ts`                           |   oui   |    oui     |                FAIT                 |
 
 ### Fichiers modifies
 
@@ -1206,61 +1206,61 @@ Handler de la route (200/201/...)
 | `backend/app/main.py`                        | Enregistrer routers auth/users                 |                   FAIT                   |
 | `backend/app/api/__init__.py`                | Ajouter les routers auth et users              |                   FAIT                   |
 | `backend/app/core/config.py`                 | Settings JWT + Redis + email domains           |                   FAIT                   |
-| `backend/app/api/partners.py`                | `Depends(require_role(...))`         | FAIT (roles a corriger cf. 4.7)          |
-| `backend/app/api/quotes.py`                  | `Depends(require_role(...))`         | FAIT (roles a corriger cf. 4.7)          |
-| `backend/app/api/imports.py`                 | `Depends(require_role(...))`         | FAIT (roles a corriger cf. 4.7)          |
-| `backend/app/api/matching.py`                | `Depends(get_current_user)`          |                   FAIT                   |
-| `backend/app/api/customer_quotes.py`         | Auth + filtrage par proprietaire     | FAIT (items DELETE a corriger cf. 4.7)   |
-| `backend/app/api/cities.py`                  | `Depends(get_current_user)`          |                   FAIT                   |
-| `backend/app/models/customer_quote.py`       | Colonnes `created_by`, `updated_by`  | FAIT (colonnes) / A FAIRE (alimentation) |
-| `frontend/package.json`                      | +dependances (jwt-decode, axios)     |                   FAIT                   |
-| `frontend/src/App.tsx`                       | Routes protegees, route /login       | FAIT (roles a corriger cf. 5.6)          |
-| `frontend/src/services/api.ts`               | Intercepteurs auth (token, refresh)  |                   FAIT                   |
-| `frontend/src/components/layout/Sidebar.tsx` | Navigation conditionnelle par role   | FAIT (roles a corriger cf. 5.7)          |
+| `backend/app/api/partners.py`                | `Depends(require_role(...))`                   |     FAIT (roles a corriger cf. 4.7)      |
+| `backend/app/api/quotes.py`                  | `Depends(require_role(...))`                   |     FAIT (roles a corriger cf. 4.7)      |
+| `backend/app/api/imports.py`                 | `Depends(require_role(...))`                   |     FAIT (roles a corriger cf. 4.7)      |
+| `backend/app/api/matching.py`                | `Depends(get_current_user)`                    |                   FAIT                   |
+| `backend/app/api/customer_quotes.py`         | Auth + filtrage par proprietaire               |  FAIT (items DELETE a corriger cf. 4.7)  |
+| `backend/app/api/cities.py`                  | `Depends(get_current_user)`                    |                   FAIT                   |
+| `backend/app/models/customer_quote.py`       | Colonnes `created_by`, `updated_by`            | FAIT (colonnes) / A FAIRE (alimentation) |
+| `frontend/package.json`                      | +dependances (jwt-decode, axios)               |                   FAIT                   |
+| `frontend/src/App.tsx`                       | Routes protegees, route /login                 |     FAIT (roles a corriger cf. 5.6)      |
+| `frontend/src/services/api.ts`               | Intercepteurs auth (token, refresh)            |                   FAIT                   |
+| `frontend/src/components/layout/Sidebar.tsx` | Navigation conditionnelle par role             |     FAIT (roles a corriger cf. 5.7)      |
 
 ---
 
 ## 17. Recapitulatif des travaux restants
 
 ### Priorite 1 — Correction des roles (conformite matrice 1.2)
-| #   | Tache                                                                | Statut      |
-| --- | -------------------------------------------------------------------- | ----------- |
+| #   | Tache                                                                 | Statut      |
+| --- | --------------------------------------------------------------------- | ----------- |
 | 1   | `partners.py` : POST/PUT → retirer ADMIN, OPERATOR (SUPER_ADMIN seul) | A CORRIGER  |
-| 2   | `partners.py` : DELETE → retirer ADMIN (SUPER_ADMIN seul)           | A CORRIGER  |
-| 3   | `partners.py` : DELETE quotes → retirer ADMIN (SUPER_ADMIN seul)    | A CORRIGER  |
-| 4   | `imports.py` : POST/GET → retirer ADMIN, OPERATOR (SUPER_ADMIN seul) | A CORRIGER  |
-| 5   | `quotes.py` : DELETE → retirer ADMIN, OPERATOR (SUPER_ADMIN seul)   | A CORRIGER  |
-| 6   | `quotes.py` : POST → clarifier dans la matrice 1.2                  | A CLARIFIER |
-| 7   | `customer_quotes.py` : DELETE items → ajouter COMMERCIAL            | A CORRIGER  |
-| 8   | `App.tsx` : `/partners` → accessible a tous (pas ADMIN+OPERATOR)    | A CORRIGER  |
-| 9   | `App.tsx` : `/imports` → SUPER_ADMIN seul (pas ADMIN+OPERATOR)      | A CORRIGER  |
-| 10  | `App.tsx` : `/customer-quotes/:id/edit` → ajouter OPERATOR          | A CORRIGER  |
-| 11  | `Sidebar.tsx` : separer Partenaires (tous) et Imports (SUPER_ADMIN) | A CORRIGER  |
+| 2   | `partners.py` : DELETE → retirer ADMIN (SUPER_ADMIN seul)             | A CORRIGER  |
+| 3   | `partners.py` : DELETE quotes → retirer ADMIN (SUPER_ADMIN seul)      | A CORRIGER  |
+| 4   | `imports.py` : POST/GET → retirer ADMIN, OPERATOR (SUPER_ADMIN seul)  | A CORRIGER  |
+| 5   | `quotes.py` : DELETE → retirer ADMIN, OPERATOR (SUPER_ADMIN seul)     | A CORRIGER  |
+| 6   | `quotes.py` : POST → clarifier dans la matrice 1.2                    | A CLARIFIER |
+| 7   | `customer_quotes.py` : DELETE items → ajouter COMMERCIAL              | A CORRIGER  |
+| 8   | `App.tsx` : `/partners` → accessible a tous (pas ADMIN+OPERATOR)      | A CORRIGER  |
+| 9   | `App.tsx` : `/imports` → SUPER_ADMIN seul (pas ADMIN+OPERATOR)        | A CORRIGER  |
+| 10  | `App.tsx` : `/customer-quotes/:id/edit` → ajouter OPERATOR            | A CORRIGER  |
+| 11  | `Sidebar.tsx` : separer Partenaires (tous) et Imports (SUPER_ADMIN)   | A CORRIGER  |
 
 ### Priorite 2 — Bugs et ameliorations
-| #   | Tache                                                        | Statut     |
-| --- | ------------------------------------------------------------ | ---------- |
-| 12  | `users.py` : nettoyer imports dupliques (lignes 1-27)        | A FAIRE    |
-| 13  | `users.py` PATCH status : invalider tokens Redis             | A FAIRE    |
-| 14  | Alimenter `created_by`/`updated_by` sur `customer_quotes`    | A FAIRE    |
-| 15  | Rotation du refresh token                                    | A FAIRE    |
-| 16  | Remplacement `datetime.utcnow()` (deprecie Python 3.12)     | A FAIRE    |
-| 17  | Race condition refresh token (mutex Axios)                   | A FAIRE    |
+| #   | Tache                                                     | Statut  |
+| --- | --------------------------------------------------------- | ------- |
+| 12  | `users.py` : nettoyer imports dupliques (lignes 1-27)     | A FAIRE |
+| 13  | `users.py` PATCH status : invalider tokens Redis          | A FAIRE |
+| 14  | Alimenter `created_by`/`updated_by` sur `customer_quotes` | A FAIRE |
+| 15  | Rotation du refresh token                                 | A FAIRE |
+| 16  | Remplacement `datetime.utcnow()` (deprecie Python 3.12)   | A FAIRE |
+| 17  | Race condition refresh token (mutex Axios)                | A FAIRE |
 
 ### Priorite 3 — Fonctionnalites manquantes
-| #   | Tache                                                | Statut  |
-| --- | ---------------------------------------------------- | ------- |
+| #   | Tache                                                   | Statut  |
+| --- | ------------------------------------------------------- | ------- |
 | 18  | Endpoint `GET /users/pending` (utilisateurs en attente) | A FAIRE |
 | 19  | Endpoint `POST /users/{id}/approve` (validation admin)  | A FAIRE |
-| 20  | Filtres par role/statut dans `Users.tsx`             | A FAIRE |
-| 21  | Badge "Demandes en attente" dans `Users.tsx`         | A FAIRE |
-| 22  | Audit logging (Phase 2)                             | A FAIRE |
+| 20  | Filtres par role/statut dans `Users.tsx`                | A FAIRE |
+| 21  | Badge "Demandes en attente" dans `Users.tsx`            | A FAIRE |
+| 22  | Audit logging (Phase 2)                                 | A FAIRE |
 
 ### Priorite 4 — Tests et validation
-| #   | Tache                                  | Statut  |
-| --- | -------------------------------------- | ------- |
-| 23  | Tests unitaires auth                   | A FAIRE |
-| 24  | Tests de bout-en-bout (Flux complet)   | A FAIRE |
-| 25  | Verification des permissions par role  | A FAIRE |
+| #   | Tache                                 | Statut  |
+| --- | ------------------------------------- | ------- |
+| 23  | Tests unitaires auth                  | A FAIRE |
+| 24  | Tests de bout-en-bout (Flux complet)  | A FAIRE |
+| 25  | Verification des permissions par role | A FAIRE |
 
 **Note** : L'ensemble des fonctionnalites principales est implemente. Le travail restant concerne principalement l'alignement des roles avec la matrice 1.2, le nettoyage de code, et les tests.

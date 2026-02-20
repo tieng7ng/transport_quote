@@ -1,4 +1,5 @@
 from typing import List, Optional
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.models.partner_quote import PartnerQuote, TransportMode
@@ -80,14 +81,13 @@ class QuoteService:
         # On cherche tous les items qui pointent vers des quotes de ce partenaire
         quotes_to_delete_subquery = db.query(PartnerQuote.id).filter(PartnerQuote.partner_id == partner_id)
         
-        from datetime import datetime
-        print(f"[{datetime.utcnow()}] QuoteService: Detaching quotes...")
+        print(f"[{datetime.now(timezone.utc)}] QuoteService: Detaching quotes...")
 
         db.query(CustomerQuoteItem).filter(
             CustomerQuoteItem.partner_quote_id.in_(quotes_to_delete_subquery)
         ).update({CustomerQuoteItem.partner_quote_id: None}, synchronize_session=False)
 
-        print(f"[{datetime.utcnow()}] QuoteService: Quotes detached. Deleting...")
+        print(f"[{datetime.now(timezone.utc)}] QuoteService: Quotes detached. Deleting...")
 
         # 2. Supprimer les tarifs
         num_deleted = db.query(PartnerQuote).filter(PartnerQuote.partner_id == partner_id).delete(synchronize_session=False)

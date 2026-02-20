@@ -1,7 +1,7 @@
 import os
 import shutil
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Any
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
@@ -46,7 +46,7 @@ class ImportService:
         os.makedirs(UPLOAD_DIR, exist_ok=True)
         
         # 2. Sauvegarder le fichier
-        timestamp = int(datetime.utcnow().timestamp())
+        timestamp = int(datetime.now(timezone.utc).timestamp())
         # Sanitize filename (remove path) and validate extension
         original_fname = os.path.basename(file.filename or "upload")
         _, file_ext = os.path.splitext(original_fname)
@@ -120,26 +120,26 @@ class ImportService:
             errors_list = []
             total_rows = 0
 
-            print(f"[{datetime.utcnow()}] START Processing Job {job_id}")
-            print(f"[{datetime.utcnow()}] Deleting old quotes...")
+            print(f"[{datetime.now(timezone.utc)}] START Processing Job {job_id}")
+            print(f"[{datetime.now(timezone.utc)}] Deleting old quotes...")
 
             # Suppression des anciens tarifs du partenaire avant import
             QuoteService.delete_all_by_partner(db, job.partner_id)
 
-            print(f"[{datetime.utcnow()}] Old quotes deleted. Parsing file...")
+            print(f"[{datetime.now(timezone.utc)}] Old quotes deleted. Parsing file...")
 
             # --- VÉRIFICATION LAYOUT MULTI_SHEET ---
             if mapper.is_multi_sheet(partner_code):
                 # Layout multi_sheet : traiter plusieurs feuilles
                 sheets_config = mapper.get_sheets_config(partner_code)
-                print(f"[{datetime.utcnow()}] Multi-sheet layout detected. Processing {len(sheets_config)} sheets...")
+                print(f"[{datetime.now(timezone.utc)}] Multi-sheet layout detected. Processing {len(sheets_config)} sheets...")
 
                 for sheet_conf in sheets_config:
                     sheet_name = sheet_conf.get("sheet_name")
                     header_row = sheet_conf.get("header_row")
                     conf_name = sheet_conf.get("name", sheet_name)
 
-                    print(f"[{datetime.utcnow()}] Processing sheet '{sheet_name}' (config: {conf_name})...")
+                    print(f"[{datetime.now(timezone.utc)}] Processing sheet '{sheet_name}' (config: {conf_name})...")
 
                     # Parser cette feuille spécifique
                     sheet_parser_config = {
@@ -148,7 +148,7 @@ class ImportService:
                     }
                     raw_data = parser.parse(file_path, **sheet_parser_config)
 
-                    print(f"[{datetime.utcnow()}] Sheet '{sheet_name}': {len(raw_data) if raw_data else 0} rows parsed.")
+                    print(f"[{datetime.now(timezone.utc)}] Sheet '{sheet_name}': {len(raw_data) if raw_data else 0} rows parsed.")
 
                     if not raw_data:
                         continue
@@ -213,14 +213,14 @@ class ImportService:
                                 "raw": sanitize_for_json(row)
                             })
 
-                    print(f"[{datetime.utcnow()}] Sheet '{sheet_name}' completed.")
+                    print(f"[{datetime.now(timezone.utc)}] Sheet '{sheet_name}' completed.")
 
             else:
                 # --- PIPELINE STANDARD (une seule feuille) ---
                 parser_config = mapper.get_parser_config(partner_code)
                 raw_data = parser.parse(file_path, **parser_config)
 
-                print(f"[{datetime.utcnow()}] Parsed {len(raw_data) if raw_data else 0} rows.")
+                print(f"[{datetime.now(timezone.utc)}] Parsed {len(raw_data) if raw_data else 0} rows.")
 
                 total_rows = len(raw_data) if raw_data else 0
 

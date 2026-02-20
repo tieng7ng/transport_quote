@@ -14,9 +14,9 @@ router = APIRouter()
 def create_partner(
     partner_in: PartnerCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN", "OPERATOR"))
+    current_user: User = Depends(require_role("SUPER_ADMIN"))
 ):
-    """Créer un nouveau partenaire (ADMIN, OPERATOR)."""
+    """Créer un nouveau partenaire (SUPER_ADMIN)."""
     # Vérifier doublon code
     existing = PartnerService.get_by_code(db, partner_in.code)
     if existing:
@@ -53,9 +53,9 @@ def update_partner(
     partner_id: str,
     partner_in: PartnerUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN", "OPERATOR"))
+    current_user: User = Depends(require_role("SUPER_ADMIN"))
 ):
-    """Mettre à jour un partenaire (ADMIN, OPERATOR)."""
+    """Mettre à jour un partenaire (SUPER_ADMIN)."""
     partner = PartnerService.update_partner(db, partner_id, partner_in)
     if not partner:
         raise HTTPException(status_code=404, detail="Partenaire non trouvé")
@@ -65,9 +65,9 @@ def update_partner(
 def delete_partner(
     partner_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN"))
+    current_user: User = Depends(require_role("SUPER_ADMIN"))
 ):
-    """Supprimer un partenaire (ADMIN)."""
+    """Supprimer un partenaire (SUPER_ADMIN)."""
     success = PartnerService.delete_partner(db, partner_id)
     if not success:
         raise HTTPException(status_code=404, detail="Partenaire non trouvé")
@@ -77,7 +77,7 @@ def delete_partner(
 def delete_partner_quotes(
     partner_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN"))
+    current_user: User = Depends(require_role("SUPER_ADMIN"))
 ):
     """
     Supprimer tous les tarifs associés à un partenaire spécifique (ADMIN).

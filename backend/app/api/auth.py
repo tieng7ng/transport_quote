@@ -1,4 +1,4 @@
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
@@ -106,7 +106,7 @@ def logout(
     exp = payload.get("exp") # Expiration timestamp
     
     # Calculate TTL
-    ttl = exp - datetime.utcnow().timestamp()
+    ttl = exp - datetime.now(timezone.utc).timestamp()
     if ttl > 0:
         redis.setex(f"blacklist:{jti}", int(ttl), "revoked")
         
