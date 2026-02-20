@@ -1,6 +1,117 @@
 version: '3.8'
 
 services:
+  # ============================================================
+  # ZONE DMZ - Exposée à l'extérieur
+  # ============================================================
+  nginx-external:
+    image: nginx:1.25-alpine
+    container_name: transport_quote_nginx_external
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/external.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    networks:
+      - dmz-network
+    depends_on:
+      nginx-internal:
+        condition: service_started
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+
+  certbot:
+    image: certbot/certbot
+    container_name: transport_quote_certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    networks:
+      - dmz-network
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+  # ============================================================
+  # PASSERELLE - Entre DMZ et zone applicative
+  # ============================================================
+  nginx-internal:
+    image: nginx:1.25-alpine
+    container_name: transport_quote_nginx_internal
+    volumes:
+      - ./nginx/internal.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - dmz-network
+      - app-network
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+
+  # ============================================================
+  # ZONE APPLICATIVE - Isolée de l'extérieur (internal: true)
+  # ============================================================
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: /transport/api/v1
+    container_name: transport_quote_frontend
+    networks:
+      - app-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+
+  backend:
+    build: ./backend
+    container_name: transport_quote_backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      UPLOAD_DIR: /app/uploads
+      PARTNER_CONFIGS_DIR: /app/configs/partners
+      SECRET_KEY: ${SECRET_KEY}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/configs:/app/configs
+      - ./file_import:/app/file_import
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - app-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+
   postgres:
     image: postgres:16-alpine
     container_name: transport_quote_db
@@ -42,92 +153,18 @@ services:
           cpus: '0.25'
           memory: 256M
 
-  certbot:
-    image: certbot/certbot
-    container_name: transport_quote_certbot
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-    networks:
-      - app-network
-
-  backend:
-    build: ./backend
-    container_name: transport_quote_backend
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      UPLOAD_DIR: /app/uploads
-      PARTNER_CONFIGS_DIR: /app/configs/partners
-      SECRET_KEY: ${SECRET_KEY}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
-    volumes:
-      - ./backend/uploads:/app/uploads
-      - ./backend/configs:/app/configs
-      - ./file_import:/app/file_import
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - app-network
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 512M
-
-  nginx:
-    image: nginx:1.25-alpine
-    container_name: transport_quote_nginx
-    ports:
-      - "80:80"
-      - "8080:80"
-      - "443:443"
-    volumes:
-      - ./nginx-reverse-proxy.conf:/etc/nginx/conf.d/default.conf
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    depends_on:
-      backend:
-        condition: service_healthy
-      frontend:
-        condition: service_started
-    networks:
-      - app-network
-    restart: always
-
-  frontend:
-    build:
-      context: ./frontend
-      args:
-        VITE_API_URL: /transport/api/v1
-    container_name: transport_quote_frontend
-    depends_on:
-      backend:
-        condition: service_started
-    networks:
-      - app-network
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 512M
-
+# ============================================================
+# RESEAUX
+# ============================================================
 networks:
+  dmz-network:
+    driver: bridge
+    # Réseau accessible depuis l'extérieur (ports 80/443 exposés)
   app-network:
     driver: bridge
+    internal: true
+    # IMPORTANT: "internal: true" empêche tout accès extérieur direct
+    # Les containers sur ce réseau ne peuvent PAS accéder à Internet
 
 volumes:
   postgres_data:
