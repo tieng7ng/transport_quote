@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, UploadCloud, Box, Search, ShoppingCart, UserCog } from 'lucide-react';
+import { LayoutDashboard, Users, UploadCloud, Box, Search, ShoppingCart, UserCog, ClipboardList, BarChart2 } from 'lucide-react';
 import { useCustomerQuote } from '../../context/CustomerQuoteContext';
 import RoleGate from '../auth/RoleGate';
 import { useAuth } from '../../context/AuthContext';
@@ -36,6 +36,8 @@ export const Sidebar: React.FC = () => {
 
                 <RoleGate allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                     <SidebarLink to="/users" icon={UserCog} label="Utilisateurs" />
+                    <SidebarLink to="/admin/activity" icon={ClipboardList} label="Historique" />
+                    <SidebarLink to="/admin/statistics" icon={BarChart2} label="Statistiques" />
                 </RoleGate>
 
                 <div className="px-4 mt-6 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">

@@ -4,6 +4,8 @@ import { UserMenu } from './UserMenu';
 import { QuoteSidebar } from '../customer-quote/QuoteSidebar';
 import { SearchModal } from '../SearchModal';
 import { Outlet, useLocation } from 'react-router-dom';
+import AlertBadge from '../alerts/AlertBadge';
+import { useAuth } from '../../context/AuthContext';
 
 
 const pageTitles: Record<string, string> = {
@@ -15,7 +17,9 @@ const pageTitles: Record<string, string> = {
 
 export const Layout: React.FC = () => {
     const location = useLocation();
+    const { user } = useAuth();
     const pageTitle = pageTitles[location.pathname] || 'Transport Quote';
+    const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 
     return (
         <div className="flex h-screen bg-slate-50 font-sans">
@@ -23,7 +27,8 @@ export const Layout: React.FC = () => {
             <div className="flex-1 flex flex-col overflow-hidden relative">
                 <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 z-10 px-8 py-5 flex items-center justify-between sticky top-0">
                     <h2 className="text-xl font-bold text-slate-800 tracking-tight">{pageTitle}</h2>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        {isAdmin && <AlertBadge />}
                         <UserMenu />
                     </div>
                 </header>

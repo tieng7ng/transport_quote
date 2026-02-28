@@ -13,6 +13,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Users from './pages/Users';
 import Profile from './pages/Profile';
+import ActivityLogs from './pages/ActivityLogs';
+import Statistics from './pages/Statistics';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CustomerQuoteProvider } from './context/CustomerQuoteContext';
@@ -21,8 +23,6 @@ import ChangePasswordModal from './components/auth/ChangePasswordModal';
 
 const PasswordEnforcement = () => {
   const { user, mustChangePassword } = useAuth();
-  // Show modal if user is logged in AND must change password
-  // OR if we have the mustChangePassword flag set from a failed 403 check
   const shouldShow = (!!user && user.must_change_password === true) || !!mustChangePassword;
   return <ChangePasswordModal isOpen={shouldShow} />;
 };
@@ -54,7 +54,6 @@ function App() {
                   {/* Partners available to all authenticated */}
                   <Route path="partners" element={<Partners />} />
 
-                  {/* Role based implementation needed in components or here if strict separation */}
                   <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'COMMERCIAL', 'OPERATOR']} />}>
                     <Route path="customer-quotes/:id/edit" element={<CustomerQuoteEditor />} />
                   </Route>
@@ -64,8 +63,11 @@ function App() {
                     <Route path="imports" element={<Imports />} />
                   </Route>
 
+                  {/* Admin pages — ADMIN + SUPER_ADMIN */}
                   <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN']} />}>
                     <Route path="users" element={<Users />} />
+                    <Route path="admin/activity" element={<ActivityLogs />} />
+                    <Route path="admin/statistics" element={<Statistics />} />
                   </Route>
                 </Route>
               </Route>
