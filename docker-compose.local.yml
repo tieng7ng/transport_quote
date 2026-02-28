@@ -1,0 +1,18 @@
+# ============================================================
+# Override LOCAL - Développement sur machine locale
+# Usage : docker-compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+# URL   : http://localhost:8080
+# ============================================================
+
+services:
+  nginx-external:
+    ports:
+      - "8080:80"
+    volumes:
+      # Surcharge la conf SSL par une conf HTTP simple (le dernier montage gagne)
+      - ./nginx/local.conf:/etc/nginx/conf.d/default.conf:ro
+
+  # Certbot inutile en local — on le désactive
+  certbot:
+    entrypoint: "/bin/sh -c 'exit 0'"
+    restart: "no"

@@ -92,7 +92,7 @@ fi
 log "🏗  Étape 3/4 : Reconstruction des conteneurs..."
 
 # Build sans cache pour s'assurer d'avoir les dernières dépendances si changées
-docker-compose up -d --build --remove-orphans
+docker-compose -f docker-compose.yml --env-file .env up -d --build --remove-orphans
 
 # Vérification basique
 if [ $? -eq 0 ]; then
