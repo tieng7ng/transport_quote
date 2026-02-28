@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Body, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Request, status
 from sqlalchemy.orm import Session
 from app.core.deps import get_db, get_current_user, require_role
 from app.models.user import User, UserRole
@@ -12,6 +12,7 @@ from app.schemas.customer_quote import (
     CustomerQuoteItemCreate
 )
 from app.services.customer_quote_service import CustomerQuoteService
+from app.services.activity_service import log_activity
 from app.models.customer_quote import CustomerQuoteItem, CustomerQuote
 
 router = APIRouter()
@@ -19,11 +20,18 @@ router = APIRouter()
 @router.post("/", response_model=CustomerQuoteResponse)
 def create_quote(
     quote_in: CustomerQuoteCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("ADMIN", "COMMERCIAL", "OPERATOR"))
 ):
     """Créer un nouveau brouillon de devis."""
-    return CustomerQuoteService.create_quote(db, quote_in, current_user.id)
+    quote = CustomerQuoteService.create_quote(db, quote_in, current_user.id)
+    log_activity(db, "quote.created", user=current_user, resource="customer_quote",
+                 resource_id=quote.id,
+                 details={"reference": quote.reference, "customer": str(quote.customer_id)},
+                 request=request)
+    db.commit()
+    return quote
 
 @router.get("/", response_model=List[CustomerQuoteResponse])
 def read_quotes(
@@ -38,10 +46,8 @@ def read_quotes(
     ADMIN/OPERATOR/SUPER_ADMIN : voient tout.
     """
     owner_id = None
-    owner_id = None
     if current_user.role in ["COMMERCIAL", "OPERATOR"]:
         owner_id = current_user.id
-        
     return CustomerQuoteService.get_quotes(db, skip=skip, limit=limit, owner_id=owner_id)
 
 @router.get("/{quote_id}", response_model=CustomerQuoteResponse)
@@ -57,12 +63,10 @@ def read_quote(
 
     print(f"DEBUG DELETE: role={current_user.role} ({type(current_user.role)}) user={current_user.id} quote_owner={quote.created_by} quote={quote_id}", flush=True)
 
-    # Check ownership for COMMERCIAL
-    # Note: role is an Enum in the model
     if str(current_user.role) == "COMMERCIAL" or current_user.role == UserRole.COMMERCIAL:
         if quote.created_by != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorized to view this quote")
-    
+
     return quote
 
 # --- Items Transport ---
@@ -77,15 +81,8 @@ def add_transport_item(
     """Ajouter une ligne de transport (copie du tarif partenaire)."""
     if not item_in.partner_quote_id:
         raise HTTPException(status_code=400, detail="partner_quote_id required for transport items")
-        
     try:
-        # Poids par défaut à 100kg si non fourni (provisoire)
         weight = item_in.weight if item_in.weight is not None else 100.0
-        
-        # Note: We might want to update updated_by here too
-        # But add_transport_item service doesn't take user_id yet
-        # For now, just RBAC
-        
         return CustomerQuoteService.add_transport_item(
             db, quote_id, item_in.partner_quote_id, weight
         )
@@ -130,7 +127,6 @@ def remove_item(
     current_user: User = Depends(require_role("ADMIN", "COMMERCIAL"))
 ):
     """Supprimer une ligne."""
-    # Check ownership for COMMERCIAL
     if current_user.role == UserRole.COMMERCIAL or str(current_user.role) == "COMMERCIAL":
          quote = CustomerQuoteService.get_quote(db, str(quote_id))
          if not quote:
@@ -147,6 +143,7 @@ def remove_item(
 def update_quote(
     quote_id: str,
     quote_in: CustomerQuoteUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("ADMIN", "COMMERCIAL", "OPERATOR"))
 ):
@@ -154,11 +151,44 @@ def update_quote(
     quote = CustomerQuoteService.update_quote(db, quote_id, quote_in, current_user.id)
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
+    log_activity(db, "quote.updated", user=current_user, resource="customer_quote",
+                 resource_id=quote_id,
+                 details={"reference": quote.reference},
+                 request=request)
+    db.commit()
+    return quote
+
+@router.patch("/{quote_id}/status")
+def change_quote_status(
+    quote_id: str,
+    new_status: str = Body(..., embed=True),
+    request: Request = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "COMMERCIAL", "OPERATOR"))
+):
+    """Changer le statut d'un devis."""
+    quote = CustomerQuoteService.get_quote(db, str(quote_id))
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found")
+    previous_status = str(quote.status)
+    quote = CustomerQuoteService.update_quote(
+        db, quote_id, CustomerQuoteUpdate(status=new_status), current_user.id
+    )
+    log_activity(db, "quote.status_changed", user=current_user, resource="customer_quote",
+                 resource_id=quote_id,
+                 details={
+                     "reference": quote.reference,
+                     "previous_status": previous_status,
+                     "new_status": new_status,
+                 },
+                 request=request)
+    db.commit()
     return quote
 
 @router.delete("/{quote_id}")
 def delete_quote(
     quote_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("ADMIN", "COMMERCIAL"))
 ):
@@ -167,12 +197,17 @@ def delete_quote(
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
 
-    # Check ownership for COMMERCIAL
     if current_user.role == UserRole.COMMERCIAL or str(current_user.role) == "COMMERCIAL":
         if str(quote.created_by) != str(current_user.id):
              raise HTTPException(status_code=403, detail="Not authorized to delete this quote")
-    
+
+    log_activity(db, "quote.deleted", user=current_user, resource="customer_quote",
+                 resource_id=quote_id,
+                 details={"reference": quote.reference},
+                 request=request)
+
     success = CustomerQuoteService.delete_quote(db, quote_id)
     if not success:
         raise HTTPException(status_code=404, detail="Quote not found")
+    db.commit()
     return {"status": "success"}
