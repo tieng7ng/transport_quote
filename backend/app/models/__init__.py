@@ -10,6 +10,8 @@ from app.models.customer_quote import (
     CustomerQuoteStatus,
     CustomerQuoteItemType,
 )
+from app.models.activity_log import UserActivityLog
+from app.models.security_alert import SecurityAlert
 
 __all__ = [
     "User",
@@ -25,4 +27,6 @@ __all__ = [
     "CustomerQuoteItem",
     "CustomerQuoteStatus",
     "CustomerQuoteItemType",
+    "UserActivityLog",
+    "SecurityAlert",
 ]
