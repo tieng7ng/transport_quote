@@ -1,49 +1,90 @@
-
 import { test, expect } from '@playwright/test';
+import { loginAs } from './fixtures';
 
 test.describe('Authentication Flow', () => {
 
+    // 1.1 — Login valide → redirect vers dashboard
     test('should allow user to login with valid credentials', async ({ page }) => {
-        // 1. Go to login page
         await page.goto('/login');
 
-        // 2. Fill in credentials (using the test user we manually create or know exists)
-        // We'll use the "test@example.com" created in backend tests if persistence allows, 
-        // or better, rely on seeded data. 
-        // Since we don't have guaranteed seed, we might fail if user doesn't exist.
-        // Ideally we should seed the DB before E2E.
-        // For now, let's assume "admin@transport-quote.com" / "admin" exists or similar default.
-        // Actually, let's use the one from test_auth.py: "test@example.com" / "Password123!"
-        // BUT backend tests run in transaction and might rollback or use separate DB if configured so.
-        // In docker-compose, we use a real postgres volume `postgres_data`.
-        // Changes from `pytest` might NOT persist if they use `TestingSessionLocal` which rolls back.
+        await page.fill('input[name="email"]', 'admin');
+        await page.fill('input[name="password"]', 'Admin1234!');
+        await page.click('button[type="submit"]');
 
-        // We need a stable user. 
-        // The "admin" user is usually created by `initial_data.py` script if it runs.
-
-        // Let's try to register first if possible, or fail gracefully.
-        // Or just check that the login form elements adhere to accessibility/visibility.
-
-        await page.fill('input[name="email"]', 'admin@transport-quote.com');
-        await page.fill('input[name="password"]', 'admin');
-
-        // Check UI elements
-        await expect(page.getByRole('heading', { name: /transport quote/i })).toBeVisible();
-        await expect(page.getByPlaceholder(/adresse email/i)).toBeVisible();
-        await expect(page.getByPlaceholder(/mot de passe/i)).toBeVisible();
-        await expect(page.getByRole('button', { name: /se connecter/i })).toBeVisible();
+        // Attendre la redirection post-login
+        await page.waitForURL(/\/(dashboard|$)/, { timeout: 8000 });
+        await expect(page).not.toHaveURL(/\/login/);
     });
 
+    // 1.2 — Mauvais mot de passe → message d'erreur visible
     test('should show error on invalid credentials', async ({ page }) => {
         await page.goto('/login');
         await page.fill('input[name="email"]', 'wrong@example.com');
         await page.fill('input[name="password"]', 'WrongPass123!');
         await page.click('button[type="submit"]');
 
-        // Expect an error message (toast or alert)
-        // Adjust selector based on actual UI implementation (e.g., toast)
-        // await expect(page.getByText(/email ou mot de passe incorrect/i)).toBeVisible(); 
-        // Commenting out specific assertion until we know the UI behavior, 
-        // but the test should pass if it doesn't crash.
+        // Vérifier le message d'erreur (toast ou alerte)
+        await expect(
+            page.getByText(/email ou mot de passe incorrect|identifiants incorrects|invalid/i)
+        ).toBeVisible({ timeout: 5000 });
+    });
+
+    // 1.3 — Compte inactif → message d'erreur approprié
+    test('should show error for inactive account', async ({ page }) => {
+        await page.goto('/login');
+        await page.fill('input[name="email"]', 'inactive_user');
+        await page.fill('input[name="password"]', 'Admin1234!');
+        await page.click('button[type="submit"]');
+
+        await expect(
+            page.getByText(/compte inactif|compte désactivé|inactive/i)
+        ).toBeVisible({ timeout: 5000 });
+    });
+
+    // 1.4 — Logout → redirect vers /login
+    test('should redirect to login after logout', async ({ page, request }) => {
+        await loginAs(page, request, 'admin');
+        await page.goto('/dashboard');
+        // Clic sur le bouton de déconnexion (adapter le sélecteur si nécessaire)
+        await page.getByRole('button', { name: /déconnexion|logout|sign out/i }).click();
+        await page.waitForURL(/\/login/, { timeout: 5000 });
+        await expect(page).toHaveURL(/\/login/);
+    });
+
+    // 1.5 — Route protégée sans connexion → redirect vers /login
+    test('should redirect unauthenticated user to login', async ({ page }) => {
+        // Pas de loginAs → aucun token en localStorage
+        await page.goto('/dashboard');
+        await page.waitForURL(/\/login/, { timeout: 5000 });
+        await expect(page).toHaveURL(/\/login/);
+    });
+
+    // 1.6 — must_change_password=true → modale de changement de MDP
+    test('should open password change modal when required', async ({ page, request }) => {
+        // Ce test suppose l'existence d'un user avec must_change_password=true
+        // Adapter le login selon l'environnement de test
+        await loginAs(page, request, 'viewer');
+        await page.goto('/dashboard');
+        await expect(
+            page.getByRole('dialog').filter({ hasText: /changer.*mot de passe|change.*password/i })
+        ).toBeVisible({ timeout: 5000 });
+    });
+
+    // 1.7 — Token expiré → redirect automatique vers /login
+    test('should redirect to login when token is expired', async ({ page }) => {
+        // Injecter un JWT expiré directement en localStorage
+        await page.goto('/');
+        await page.evaluate(() => {
+            // JWT minimal avec exp = epoch (janvier 1970 — expiré depuis longtemps)
+            const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' +
+                btoa(JSON.stringify({ sub: 'test', exp: 1, jti: 'test' })).replace(/=/g, '') +
+                '.invalid_signature';
+            localStorage.setItem('access_token', expiredToken);
+            localStorage.setItem('refresh_token', 'invalid_refresh');
+        });
+
+        await page.goto('/dashboard');
+        await page.waitForURL(/\/login/, { timeout: 8000 });
+        await expect(page).toHaveURL(/\/login/);
     });
 });
